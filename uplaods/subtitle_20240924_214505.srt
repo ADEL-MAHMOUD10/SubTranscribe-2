@@ -1,0 +1,16 @@
+1
+00:00:00,160 --> 00:00:03,878
+A raven came from the citadel. A white
+
+2
+00:00:03,934 --> 00:00:04,610
+raven.
+
+3
+00:00:08,110 --> 00:00:09,370
+Winter is here.
+
+4
+00:00:21,830 --> 00:00:23,950
+Well, Father always promised, didn't he?
+

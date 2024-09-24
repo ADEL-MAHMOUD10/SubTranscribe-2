@@ -1,0 +1,211 @@
+WEBVTT
+
+00:00.200 --> 00:03.374
+If you want to quickly add subtitles to your videos and take them from
+
+00:03.422 --> 00:07.294
+this based on this research, now AI can learn to use digital
+
+00:07.382 --> 00:10.670
+tools like to this in few or zero shot
+
+00:10.710 --> 00:14.398
+settings. When it comes to natural language processing tasks, you can do
+
+00:14.414 --> 00:17.718
+it with AssemblyAI and it's going to be just a couple of lines
+
+00:17.734 --> 00:21.486
+of code very quick. Based on your transcription that you submitted
+
+00:21.518 --> 00:25.118
+to AssemblyAI, you're going to get time subtitles that you
+
+00:25.134 --> 00:28.816
+can upload to YouTube or use on your local computer
+
+00:28.848 --> 00:31.936
+however you like. The first thing that you want to do is to make sure
+
+00:31.968 --> 00:35.400
+that you have the AssemblyAI SDK installed. And for
+
+00:35.440 --> 00:39.016
+that all you have to do is go to your terminal and write down pip
+
+00:39.088 --> 00:42.680
+install AssemblyAI and that will install the python SDK
+
+00:42.720 --> 00:46.760
+of AssemblyAI. And then you want to make sure that you have a AssemblyAI
+
+00:46.800 --> 00:51.544
+API key and that is free to get. So just head on to AssemblyAI.com
+
+00:51.592 --> 00:54.932
+comma create an account and you will get a free API key
+
+00:54.956 --> 00:58.436
+from AssemblyAI. And then in your python
+
+00:58.468 --> 01:02.636
+file just import AssemblyAI
+
+01:02.748 --> 01:06.620
+as AAI and then set your AssemblyAI
+
+01:06.660 --> 01:10.640
+key, the API key here.
+
+01:12.140 --> 01:16.160
+And then you just want to start a transcription job.
+
+01:17.260 --> 01:19.960
+So create a transcriber object.
+
+01:20.920 --> 01:24.424
+And on that I can start the transcription job. You can
+
+01:24.472 --> 01:28.616
+either pass a video or audio file directly to AssemblyAI.
+
+01:28.728 --> 01:32.760
+So the video I'm working with in this example is
+
+01:32.800 --> 01:36.368
+this one. Can AI learn to use tools?
+
+01:36.504 --> 01:39.840
+Well, maybe not physical one, but this is a 4k video
+
+01:39.920 --> 01:42.976
+and it is 1.18gb,
+
+01:43.008 --> 01:46.848
+so it's going to take some time to be uploaded to AssemblyAI
+
+01:46.984 --> 01:49.924
+instead. You can just, if you're on Mac,
+
+01:50.052 --> 01:54.140
+you can start the quicktime player and then say file
+
+01:54.300 --> 01:57.444
+export as audio only and it will strip the
+
+01:57.492 --> 02:01.364
+audio of your video. And then my audio is
+
+02:01.412 --> 02:05.160
+only 8.7 megabytes, so it's going to go much faster.
+
+02:05.500 --> 02:09.740
+So that's why I'm going to pass the tool former m
+
+02:09.780 --> 02:13.292
+four a file to be transcribed.
+
+02:13.436 --> 02:17.160
+And once the transcription is ready,
+
+02:17.540 --> 02:21.236
+all I have to do is to say export subtitles srt.
+
+02:21.348 --> 02:25.300
+So this will export the subtitles in the SRT format if you
+
+02:25.340 --> 02:28.956
+want. It can also export them in the VTT format.
+
+02:29.068 --> 02:32.436
+So I'll use the SRT format right now. You don't have to pass
+
+02:32.468 --> 02:36.364
+anything to it, but if you want to specify how many characters
+
+02:36.452 --> 02:40.120
+maximum you want on each caption, you can specify
+
+02:40.650 --> 02:44.138
+chars per caption variable. And this is going
+
+02:44.154 --> 02:47.930
+to be an integer so we can specify it to be 100
+
+02:48.010 --> 02:52.258
+to 50. I think overall is generally between 81
+
+02:52.274 --> 02:55.842
+hundred. So 50 would be a bit short and 150
+
+02:55.906 --> 02:59.666
+would be a bit long. But we don't have to specify this, we'll just use
+
+02:59.698 --> 03:04.146
+a default value. And then I'm just going to open a
+
+03:04.338 --> 03:08.786
+file. I'll just call this subtitles srta
+
+03:08.928 --> 03:14.406
+with write permission and
+
+03:14.438 --> 03:19.478
+then write my subtitles in there and
+
+03:19.494 --> 03:23.078
+then close the file. All right,
+
+03:23.214 --> 03:26.886
+let's run this and see how it goes. All right, now that this is
+
+03:26.958 --> 03:29.450
+done, let's go and take a look.
+
+03:30.790 --> 03:34.526
+I can open it with text editor and this is
+
+03:34.598 --> 03:38.370
+what it looks like. And this would be as you can see, this is
+
+03:39.190 --> 03:42.862
+timed and it will be accepted by anywhere that
+
+03:42.886 --> 03:46.342
+accepts the SRT files. You can upload it to YouTube for
+
+03:46.366 --> 03:49.982
+example with your video or as far as I know, on the VLC
+
+03:50.046 --> 03:53.462
+player too. You can add subtitles on top of a video that
+
+03:53.486 --> 03:57.206
+you have and that's how you can get subtitles for your
+
+03:57.238 --> 04:00.422
+videos. In just how many lines of code?
+
+04:00.566 --> 04:03.686
+12345 lines of code. I mean, just count
+
+04:03.718 --> 04:07.774
+this as one, you know, just writing it into file.
+
+04:07.902 --> 04:11.558
+So that's it. If you have any questions, make sure to leave them down below
+
+04:11.614 --> 04:15.438
+in the comment section. If you want to learn more about
+
+04:15.494 --> 04:18.814
+this functionality, you can go to the AssemblyAI
+
+04:18.862 --> 04:22.318
+documentation or the SDK documentation on GitHub.
+
+04:22.374 --> 04:25.950
+I will make sure to leave links for you in the description below. Thanks for
+
+04:25.990 --> 04:28.330
+watching and I will see you in the next video.

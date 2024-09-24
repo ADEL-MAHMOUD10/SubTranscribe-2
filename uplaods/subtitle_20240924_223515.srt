@@ -1,0 +1,276 @@
+1
+00:00:00,200 --> 00:00:03,942
+If you want to quickly add subtitles to your videos and take them from this
+
+2
+00:00:04,086 --> 00:00:07,766
+based on this research, now AI can learn to use digital tools
+
+3
+00:00:07,798 --> 00:00:11,182
+like to this in few or zero shot settings.
+
+4
+00:00:11,286 --> 00:00:14,542
+When it comes to natural language processing tasks, you can do it
+
+5
+00:00:14,566 --> 00:00:18,262
+with AssemblyAI and it's going to be just a couple of lines of code
+
+6
+00:00:18,326 --> 00:00:22,662
+very quick. Based on your transcription that you submitted to AssemblyAI,
+
+7
+00:00:22,766 --> 00:00:26,054
+you're going to get time subtitles that you can upload to
+
+8
+00:00:26,142 --> 00:00:29,848
+YouTube or use on your local computer however you like.
+
+9
+00:00:29,984 --> 00:00:32,512
+The first thing that you want to do is to make sure that you have
+
+10
+00:00:32,536 --> 00:00:36,328
+the AssemblyAI SDK installed. And for that all you have to
+
+11
+00:00:36,344 --> 00:00:39,496
+do is go to your terminal and write down pip install
+
+12
+00:00:39,568 --> 00:00:43,936
+AssemblyAI and that will install the python SDK of AssemblyAI.
+
+13
+00:00:44,088 --> 00:00:47,632
+And then you want to make sure that you have a AssemblyAI API key
+
+14
+00:00:47,736 --> 00:00:51,544
+and that is free to get. So just head on to AssemblyAI.com
+
+15
+00:00:51,592 --> 00:00:54,932
+comma create an account and you will get a free API key
+
+16
+00:00:54,956 --> 00:00:59,132
+from AssemblyAI. And then in your python file
+
+17
+00:00:59,276 --> 00:01:03,092
+just import AssemblyAI as
+
+18
+00:01:03,156 --> 00:01:07,240
+AAI and then set your AssemblyAI key,
+
+19
+00:01:07,660 --> 00:01:10,640
+the API key here.
+
+20
+00:01:12,140 --> 00:01:16,160
+And then you just want to start a transcription job.
+
+21
+00:01:17,260 --> 00:01:19,960
+So create a transcriber object.
+
+22
+00:01:20,920 --> 00:01:24,424
+And on that I can start the transcription job. You can
+
+23
+00:01:24,472 --> 00:01:28,616
+either pass a video or audio file directly to AssemblyAI.
+
+24
+00:01:28,728 --> 00:01:32,216
+So the video I'm working with in this example
+
+25
+00:01:32,408 --> 00:01:36,368
+is this one. Can AI learn to use tools?
+
+26
+00:01:36,504 --> 00:01:40,720
+Well, maybe not physical one, but this is a 4k video and it
+
+27
+00:01:40,800 --> 00:01:44,256
+is 1.18gb, so it's going to
+
+28
+00:01:44,288 --> 00:01:47,652
+take some time to be uploaded to AssemblyAI instead.
+
+29
+00:01:47,776 --> 00:01:51,404
+You can just, if you're on Mac, you can start the quicktime
+
+30
+00:01:51,452 --> 00:01:54,796
+player and then say file export
+
+31
+00:01:54,868 --> 00:01:58,476
+as audio only and it will strip the audio of your
+
+32
+00:01:58,548 --> 00:02:02,028
+video. And then my audio is only
+
+33
+00:02:02,204 --> 00:02:06,316
+8.7 megabytes, so it's going to go much faster. So that's why
+
+34
+00:02:06,348 --> 00:02:10,840
+I'm going to pass the tool former m four a
+
+35
+00:02:11,260 --> 00:02:14,996
+file to be transcribed. And once the
+
+36
+00:02:15,028 --> 00:02:18,500
+transcription is ready, all I have to do
+
+37
+00:02:18,540 --> 00:02:22,588
+is to say export subtitles srt. So this will export the
+
+38
+00:02:22,604 --> 00:02:26,156
+subtitles in the SRT format if you want. It can
+
+39
+00:02:26,188 --> 00:02:29,836
+also export them in the VTT format. So I'll use the
+
+40
+00:02:29,868 --> 00:02:33,444
+SRT format right now. You don't have to pass anything to it,
+
+41
+00:02:33,572 --> 00:02:37,260
+but if you want to specify how many characters maximum you
+
+42
+00:02:37,300 --> 00:02:41,394
+want on each caption, you can specify chars
+
+43
+00:02:41,482 --> 00:02:44,634
+per caption variable. And this is going to be an
+
+44
+00:02:44,682 --> 00:02:48,370
+integer so we can specify it to be 100 to
+
+45
+00:02:48,450 --> 00:02:52,258
+50. I think overall is generally between 81
+
+46
+00:02:52,274 --> 00:02:56,218
+hundred. So 50 would be a bit short and 150 would be
+
+47
+00:02:56,234 --> 00:02:59,666
+a bit long. But we don't have to specify this, we'll just use
+
+48
+00:02:59,698 --> 00:03:04,146
+a default value. And then I'm just going to open a
+
+49
+00:03:04,338 --> 00:03:08,786
+file. I'll just call this subtitles srta
+
+50
+00:03:08,928 --> 00:03:14,406
+with write permission and
+
+51
+00:03:14,438 --> 00:03:19,478
+then write my subtitles in there and
+
+52
+00:03:19,494 --> 00:03:23,078
+then close the file. All right,
+
+53
+00:03:23,214 --> 00:03:27,286
+let's run this and see how it goes. All right, now that this is done,
+
+54
+00:03:27,358 --> 00:03:31,246
+let's go and take a look. I can
+
+55
+00:03:31,278 --> 00:03:34,782
+open it with text editor and this is what
+
+56
+00:03:34,806 --> 00:03:40,142
+it looks like. And this would be as you can see, this is timed
+
+57
+00:03:40,286 --> 00:03:44,450
+and it will be accepted by anywhere that accepts the SRT files.
+
+58
+00:03:44,910 --> 00:03:48,838
+You can upload it to YouTube for example with your video or as far
+
+59
+00:03:48,854 --> 00:03:52,318
+as I know, on the VLC player too. You can add subtitles on
+
+60
+00:03:52,334 --> 00:03:55,550
+top of a video that you have and that's how
+
+61
+00:03:55,590 --> 00:03:59,278
+you can get subtitles for your videos. In just how
+
+62
+00:03:59,294 --> 00:04:03,150
+many lines of code? 12345 lines of code. I mean,
+
+63
+00:04:03,190 --> 00:04:06,902
+just count this as one, you know, just writing it into
+
+64
+00:04:07,046 --> 00:04:10,518
+file. So that's it. If you have any questions, make sure to
+
+65
+00:04:10,534 --> 00:04:12,930
+leave them down below in the comment section.
+
+66
+00:04:14,030 --> 00:04:17,558
+If you want to learn more about this functionality, you can go
+
+67
+00:04:17,574 --> 00:04:20,774
+to the AssemblyAI documentation or the SDK
+
+68
+00:04:20,822 --> 00:04:24,734
+documentation on GitHub. I will make sure to leave links for you in the description
+
+69
+00:04:24,782 --> 00:04:28,330
+below. Thanks for watching and I will see you in the next video.
+
