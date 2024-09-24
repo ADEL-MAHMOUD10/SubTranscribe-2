@@ -73,13 +73,20 @@ def upload_file():
         if not allowed_file(file.filename):
             return render_template("error.html")
 
+        # Ensure the upload folder exists
+        if not os.path.exists(app.config['UPLOAD_FOLDER']):
+            os.makedirs(app.config['UPLOAD_FOLDER'])
+
         progress["status"] = 10
         filename = secure_filename(file.filename)
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(file_path)
-        file_extension = os.path.splitext(file_path)[1].lower()
-
+        
         try:
+            # Save the file to the desired location
+            file.save(file_path)
+            file_extension = os.path.splitext(file_path)[1].lower()
+
+            # Handle video to audio conversion
             if file_extension in [".mp4", ".wmv", ".mov", ".mkv", ".h.264"]:
                 video = mp.VideoFileClip(file_path)
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
