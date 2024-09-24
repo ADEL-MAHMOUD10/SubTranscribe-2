@@ -19,6 +19,7 @@ def about():
     return render_template('about.html')
 
 def upload_audio_to_assemblyai(audio_path):
+    global progress
     headers = {"authorization": "2ba819026c704d648dced28f3f52406f"}
     base_url = "https://api.assemblyai.com/v2"
     
