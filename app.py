@@ -24,6 +24,7 @@ def upload_audio_to_assemblyai(audio_path):
     base_url = "https://api.assemblyai.com/v2"
     
     with open(audio_path, "rb") as f:
+        time.sleep(10)
         response = requests.post(base_url + "/upload", headers=headers, data=f)
     
     upload_url = response.json()["upload_url"]
@@ -31,12 +32,12 @@ def upload_audio_to_assemblyai(audio_path):
     response = requests.post(base_url + "/transcript", json=data, headers=headers)
     transcript_id = response.json()['id']
     polling_endpoint = f"https://api.assemblyai.com/v2/transcript/{transcript_id}"
-    
+    time.sleep(10)
     progress["message"] = "Uploading"
     while progress["status"] < 15:
         progress["status"] += 1
         time.sleep(0.1)
-    
+    time.sleep(10)
     progress["status"] = 50
     progress["message"] = "Processing"
     
@@ -69,6 +70,7 @@ def upload_file():
     progress = {"status": 0, "message": "Initializing"}
 
     if request.method == 'POST':
+        time.sleep(1)
         file = request.files['file']
         
         if not allowed_file(file.filename):
