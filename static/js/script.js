@@ -18,7 +18,7 @@ setInterval(() => {
         .catch(error => {
             console.error('Error fetching progress:', error);
         });
-}, 5000);
+}, 11000);
 
 // Display selected file name dynamically
 function showFileName() {
