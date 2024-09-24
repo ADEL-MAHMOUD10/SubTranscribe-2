@@ -1,17 +1,24 @@
 // Fetch and update progress every 2 seconds
 setInterval(() => {
     fetch('/progress')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
         .then(data => {
-            // Update progress bar width and text
             const progressBar = document.getElementById('progressBar');
             const progressMessage = document.getElementById('progressMessage');
             progressBar.style.width = data.status + '%';
             progressBar.setAttribute('aria-valuenow', data.status);
             progressBar.textContent = data.status + '%';
             progressMessage.textContent = data.message;
+        })
+        .catch(error => {
+            console.error('Error fetching progress:', error);
         });
-}, 2000);
+}, 5000);
 
 // Display selected file name dynamically
 function showFileName() {
