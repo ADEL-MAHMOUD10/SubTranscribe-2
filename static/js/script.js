@@ -32,3 +32,23 @@ function showFileName() {
     fileNameDisplay.textContent = selectedFile ? "Selected file: " + selectedFile.name : '';
     fileNameDisplay.style.display = 'block'; // Show the file name display
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const messageModal = document.getElementById('messageModal');
+    const closeButton = document.querySelector('.close-button');
+
+    // إظهار النافذة المنبثقة
+    messageModal.style.display = 'block';
+
+    // إغلاق النافذة المنبثقة عند الضغط على زر الإغلاق
+    closeButton.addEventListener('click', function() {
+        messageModal.style.display = 'none';
+    });
+
+    // إغلاق النافذة عند الضغط في أي مكان خارج النافذة
+    window.addEventListener('click', function(event) {
+        if (event.target === messageModal) {
+            messageModal.style.display = 'none';
+        }
+    });
+});
