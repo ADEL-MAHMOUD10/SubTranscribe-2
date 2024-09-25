@@ -10,6 +10,12 @@ body{
     font-family: Verdana, Geneva, Tahoma, sans-serif;
     font-weight: bold;
 }
+
+.container h4 {
+    color: #1877F2;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    font-weight: bold;
+}
 footer{
     background-color: rgb(33,37,41);
     padding: 15px 0;
