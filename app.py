@@ -46,10 +46,19 @@ def upload_audio_to_assemblyai(audio_path):
 @app.route('/webhook', methods=['POST'])
 def webhook():
     data = request.json
-    transcript_id = data['id']
-    # Here you can update processing status in the database or log events
-    print(f"Transcription {transcript_id} completed.")
-    return '', 200
+    # Log the entire payload for debugging
+    print(f"Received webhook data: {data}")
+
+    # Check if 'id' is in the payload
+    if 'id' in data:
+        transcript_id = data['id']
+        # Here you can update processing status in the database or log events
+        print(f"Transcription {transcript_id} completed.")
+        return render_template('error.html'), 200
+    else:
+        return render_template('error.html'), 400  # Return a bad request status if 'id' is not found
+
+
 
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'.mp4', '.wmv', '.mov', '.mkv', '.h.264', '.mp3', '.wav'}
