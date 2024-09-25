@@ -18,11 +18,11 @@ setInterval(() => {
         .catch(error => {
             console.error('Error fetching progress:', error);
         });
-}, 11000);
+}, 10000);
 
 setInterval(() => {
     fetch('/download/transcript_id') 
-}, 11000);
+}, 10000);
 
 // Display selected file name dynamically
 function showFileName() {
