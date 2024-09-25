@@ -32,7 +32,7 @@ def upload_audio_to_assemblyai(audio_path):
     # Passing the correct webhook URL
     data = {
         "audio_url": upload_url,
-        "webhook_url": "https://subtranscribe2.vercel.app/download/{transcript_id}/srt"  # Make sure this is correct
+        "webhook_url": "https://subtranscribe2.vercel.app"  # Make sure this is correct
     }
     
     response = requests.post(base_url + "/transcript", json=data, headers=headers)
