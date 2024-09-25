@@ -19,9 +19,9 @@ def upload_audio_to_assemblyai(audio_path):
     
     time.sleep(5)
     with open(audio_path, "rb") as f:
+        time.sleep(5)
         response = requests.post(base_url + "/upload", headers=headers, data=f)
         
-    time.sleep(5)
     upload_url = response.json()["upload_url"]
     data = {"audio_url": upload_url}
     response = requests.post(base_url + "/transcript", json=data, headers=headers)
@@ -66,6 +66,7 @@ def upload_file():
     progress = {"status": 0, "message": "Initializing"}
     try:
         if request.method == 'POST':
+                time.sleep(5)
                 file = request.files['file']
                 progress["status"] += 1
                 filename = secure_filename(file.filename)
