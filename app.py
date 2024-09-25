@@ -45,6 +45,7 @@ def upload_audio_to_assemblyai(audio_path):
         progress["status"] += 5
     
     while True:
+        time.sleep(10)
         transcription_result = requests.get(polling_endpoint, headers=headers).json()
         if transcription_result['status'] == 'completed':
             progress["status"] = 100
