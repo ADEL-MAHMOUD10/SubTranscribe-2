@@ -141,8 +141,7 @@ def download_subtitle(transcript_id):
             
             return redirect(url_for('serve_file', filename=subtitle_file))
         else:
-            return render_template("error.html"), f"Error: {response.status_code} {response.reason}"
-
+            return render_template("error.html")
     return render_template('subtitle.html')
 
 @app.route('/serve/<filename>')
