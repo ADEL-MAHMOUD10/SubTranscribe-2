@@ -10,7 +10,7 @@ import warnings
 warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 app = Flask(__name__)
-app.config["UPLOAD_FOLDER"] = "/tmp"  # Corrected the folder name to "uploads"
+app.config["UPLOAD_FOLDER"] = "/tmp"  # For Vercel deployment
 
 progress = {"status": 0, "message": "Initializing"}
 
@@ -28,45 +28,44 @@ def upload_audio_to_assemblyai(audio_path):
         response = requests.post(base_url + "/upload", headers=headers, data=f)
 
     upload_url = response.json()["upload_url"]
-    
-    # Passing the webhook URL
+
+    # Passing the correct webhook URL
     data = {
         "audio_url": upload_url,
-        "webhook_url": "https://subtranscribe2.vercel.app/"  # Replace with your Vercel URL
+        "webhook_url": "https://subtranscribe2.vercel.app/webhook"  # Make sure this is correct
     }
+    
     response = requests.post(base_url + "/transcript", json=data, headers=headers)
-    transcript_id = response.json()['id']
+    transcript_id = response.json().get('id')
     
     progress["message"] = "Uploading"
     progress["status"] = 15  # Update the status after starting the upload
-    time.sleep(5)  # Wait a bit before starting monitoring
+    time.sleep(5)  # Wait a bit before monitoring
 
     return transcript_id
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
     data = request.json
-    # Log the entire payload for debugging
-    print(f"Received webhook data: {data}")
+
 
     # Check if 'id' is in the payload
     if 'id' in data:
         transcript_id = data['id']
         # Here you can update processing status in the database or log events
         print(f"Transcription {transcript_id} completed.")
-        return render_template('error.html'), 200
+        return '', 200
     else:
-        return render_template('error.html'), 400  # Return a bad request status if 'id' is not found
-
-
-
-def allowed_file(filename):
-    ALLOWED_EXTENSIONS = {'.mp4', '.wmv', '.mov', '.mkv', '.h.264', '.mp3', '.wav'}
-    return '.' in filename and os.path.splitext(filename)[1].lower() in ALLOWED_EXTENSIONS
+        print("No transcript ID found in the webhook data.")
+        return '', 400  # Return a bad request status if 'id' is not found
 
 @app.route('/progress')
 def progress_status():
     return jsonify(progress)
+
+def allowed_file(filename):
+    ALLOWED_EXTENSIONS = {'.mp4', '.wmv', '.mov', '.mkv', '.h.264', '.mp3', '.wav'}
+    return '.' in filename and os.path.splitext(filename)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
@@ -101,7 +100,7 @@ def upload_file():
                 video.reader.close()
                 video.audio.reader.close_proc()
                 progress["status"] = 25
-                progress["message"] = "Converting To Audio file"
+                progress["message"] = "Converting to Audio file"
                 os.remove(file_path)
 
             elif file_extension in [".mp3", ".wav"]:
