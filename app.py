@@ -32,14 +32,14 @@ def upload_audio_to_assemblyai(audio_path):
     # Passing the webhook URL
     data = {
         "audio_url": upload_url,
-        "webhook_url": "https://subtranscribe2.vercel.app/"  # Replace with your Vercel URL
+        "webhook_url": "https://subtranscribe2.vercel.app"  # Replace with your Vercel URL
     }
     response = requests.post(base_url + "/transcript", json=data, headers=headers)
     transcript_id = response.json()['id']
     
     progress["message"] = "Uploading"
     progress["status"] = 15  # Update the status after starting the upload
-    time.sleep(10)  # Wait a bit before starting monitoring
+    time.sleep(5)  # Wait a bit before starting monitoring
 
     return transcript_id
 
@@ -53,6 +53,7 @@ def webhook():
     if 'id' in data:
         transcript_id = data['id']
         # Here you can update processing status in the database or log events
+        print(f"Transcription {transcript_id} completed.")
         return render_template('error.html'), 200
     else:
         return render_template('error.html'), 400  # Return a bad request status if 'id' is not found
@@ -140,7 +141,7 @@ def download_subtitle(transcript_id):
             
             return redirect(url_for('serve_file', filename=subtitle_file))
         else:
-            return render_template("error.html")
+            return render_template("error.html"), f"Error: {response.status_code} {response.reason}"
 
     return render_template('subtitle.html')
 
