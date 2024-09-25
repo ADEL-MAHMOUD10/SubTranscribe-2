@@ -10,7 +10,7 @@ import warnings
 warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 app = Flask(__name__)
-app.config["UPLOAD_FOLDER"] = "uploads"  # Corrected the folder name to "uploads"
+app.config["UPLOAD_FOLDER"] = "/tmp"  # Corrected the folder name to "uploads"
 
 progress = {"status": 0, "message": "Initializing"}
 
