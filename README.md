@@ -33,7 +33,7 @@ This project is a web application built with Flask that allows users to upload a
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/ADEL-MAHMOUD10/your-repo.git
+   git clone https://github.com/ADEL-MAHMOUD10/SubTranscribe-2.git
    ```
 2. Install the required dependencies:
 
