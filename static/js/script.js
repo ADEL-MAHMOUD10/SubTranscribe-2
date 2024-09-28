@@ -49,3 +49,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+function showWarningMessage() {
+    const linkInput = document.getElementById('link').value;
+    if (linkInput) {
+        const warningModal = document.getElementById('messageModal');
+        const warningText = `
+            Some links (like YouTube and Twitter) may not work at the moment.
+            Please ensure the link points directly to an audio or video file.
+        `;
+        warningModal.querySelector('p').innerText = warningText;
+        warningModal.style.display = 'block';
+    }
+}
+
+// Close modal functionality
+document.querySelector('.close-button').addEventListener('click', function() {
+    document.getElementById('messageModal').style.display = 'none';
+});
+
+window.onclick = function(event) {
+    const modal = document.getElementById('messageModal');
+    if (event.target === modal) {
+        modal.style.display = 'none';
+    }
+};
