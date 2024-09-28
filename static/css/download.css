@@ -58,12 +58,13 @@ span:hover{
 .download-success span {
     pointer-events: none; /* Disable pointer events for the text */
 }
-.toogle  a{
+.toogle a {
     margin: 5px;
-    color: #0d6efd;
+    color: #ffffff37;
     font-size: 1.7rem;
     transition: color 0.3s;
-} 
+}
+
 .toogle .email:hover{
     color: #fff;
 }
