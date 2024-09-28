@@ -1,12 +1,11 @@
 import os
 import requests
 import time
+import warnings
+import moviepy.editor as mp
 from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file
 from werkzeug.utils import secure_filename
-import moviepy.editor as mp
 from datetime import datetime
-import warnings
-import assemblyai as aai
 
 warnings.filterwarnings("ignore", category=SyntaxWarning)
 
