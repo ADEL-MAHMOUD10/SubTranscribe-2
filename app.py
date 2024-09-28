@@ -6,6 +6,7 @@ from werkzeug.utils import secure_filename
 import moviepy.editor as mp
 from datetime import datetime
 import warnings
+import assemblyai as aai
 
 warnings.filterwarnings("ignore", category=SyntaxWarning)
 
@@ -13,6 +14,9 @@ app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = "/tmp"  # For Vercel deployment
 
 progress = {"status": 0, "message": "Initializing"}
+
+# Replace with your API key
+aai.settings.api_key = "2ba819026c704d648dced28f3f52406f"
 
 @app.route('/about')
 def about():
@@ -48,7 +52,6 @@ def upload_audio_to_assemblyai(audio_path):
 def webhook():
     data = request.json
 
-
     # Check if 'id' is in the payload
     if 'id' in data:
         transcript_id = data['id']
@@ -68,58 +71,98 @@ def allowed_file(filename):
     return '.' in filename and os.path.splitext(filename)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/', methods=['GET', 'POST'])
-def upload_file():
+def upload_or_link():
     global progress
     progress = {"status": 0, "message": "Initializing"}
 
     if request.method == 'POST':
-        file = request.files['file']
-        time.sleep(1)
-        if not allowed_file(file.filename):
-            return render_template("error.html")
-
-        # Ensure the upload folder exists
-        if not os.path.exists(app.config['UPLOAD_FOLDER']):
-            os.makedirs(app.config['UPLOAD_FOLDER'])
-
+        # Handle link input
+        link = request.form.get('link')
         progress["status"] = 10
-        filename = secure_filename(file.filename)
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        
-        try:
-            # Save the file to the desired location
-            file.save(file_path)
-            file_extension = os.path.splitext(file_path)[1].lower()
+        if link:
+            progress["status"] = 20
+            progress["message"] = "Initializing"
+            return transcribe_from_link(link)
 
-            # Handle video to audio conversion
-            if file_extension in [".mp4", ".wmv", ".mov", ".mkv", ".h.264"]:
-                video = mp.VideoFileClip(file_path)
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                audio_file_path = os.path.join(app.config['UPLOAD_FOLDER'], f"audio_{timestamp}.mp3")
-                video.audio.write_audiofile(audio_file_path)
-                video.reader.close()
-                video.audio.reader.close_proc()
-                progress["status"] = 25
-                progress["message"] = "Converting to Audio file"
-                os.remove(file_path)
 
-            elif file_extension in [".mp3", ".wav"]:
-                audio_file_path = file_path
-                progress["status"] = 30
-                progress["message"] = "Uploading audio file"  
-            else:
-                os.remove(file_path)
+        # Handle file upload
+        file = request.files.get('file')
+        if file and allowed_file(file.filename):
+            time.sleep(1)
+
+            # Ensure the upload folder exists
+            if not os.path.exists(app.config['UPLOAD_FOLDER']):
+                os.makedirs(app.config['UPLOAD_FOLDER'])
+
+            progress["status"] = 10
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            
+            try:
+                # Save the file to the desired location
+                file.save(file_path)
+                file_extension = os.path.splitext(file_path)[1].lower()
+
+                # Handle video to audio conversion
+                if file_extension in [".mp4", ".wmv", ".mov", ".mkv", ".h.264"]:
+                    video = mp.VideoFileClip(file_path)
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    audio_file_path = os.path.join(app.config['UPLOAD_FOLDER'], f"audio_{timestamp}.mp3")
+                    video.audio.write_audiofile(audio_file_path)
+                    video.reader.close()
+                    video.audio.reader.close_proc()
+                    progress["status"] = 25
+                    progress["message"] = "Converting to Audio file"
+                    os.remove(file_path)
+
+                elif file_extension in [".mp3", ".wav"]:
+                    audio_file_path = filename
+                    progress["status"] = 30
+                    progress["message"] = "Uploading audio file"  
+                else:
+                    os.remove(file_path)
+                    return render_template("error.html")
+
+                progress["status"] = 40
+                transcript_id = upload_audio_to_assemblyai(audio_file_path)
+                return redirect(url_for('download_subtitle', transcript_id=transcript_id))
+            except Exception as e:
+                progress["status"] = 0
+                progress["message"] = "Error: " + str(e)
                 return render_template("error.html")
 
-            progress["status"] = 40
-            transcript_id = upload_audio_to_assemblyai(audio_file_path)
-            return redirect(url_for('download_subtitle', transcript_id=transcript_id))
-        except Exception as e:
-            progress["status"] = 0
-            progress["message"] = "Error: " + str(e)
-            return render_template("error.html")
-
     return render_template('index.html')
+
+def transcribe_from_link(link):
+    base_url = "https://api.assemblyai.com/v2"
+    headers = {"authorization": "2ba819026c704d648dced28f3f52406f"}
+
+    # Create a payload with the URL
+    data = {"audio_url": link}
+    response = requests.post(base_url + "/transcript", json=data, headers=headers)
+    
+    progress["status"] = 40
+    progress["message"] = "Processing"
+    if response.status_code != 200:
+        return f"Error creating transcript: {response.json()}"
+
+    transcript_id = response.json()['id']
+
+    # Poll for the transcript status
+    while True:
+        transcript_response = requests.get(f"{base_url}/transcript/{transcript_id}", headers=headers)
+        if transcript_response.status_code == 200:
+            transcript_data = transcript_response.json()
+            progress["status"] = 80
+            if transcript_data['status'] == 'completed':
+                progress["status"] = 100
+                progress["message"] = "Processing Complete"
+                # Now, instead of returning the text, redirect to the download page
+                return redirect(url_for('download_subtitle', transcript_id=transcript_id))
+            elif transcript_data['status'] == 'error':
+                return render_template("error.html")
+        else:
+            return render_template("error.html")
 
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
