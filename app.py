@@ -11,7 +11,7 @@ import assemblyai as aai
 warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 app = Flask(__name__)
-app.config["UPLOAD_FOLDER"] = "/tmp"  # For Vercel deployment
+app.config["UPLOAD_FOLDER"] = "uploads"  # For Vercel deployment
 
 progress = {"status": 0, "message": "Initializing"}
 
