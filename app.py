@@ -14,9 +14,6 @@ app.config["UPLOAD_FOLDER"] = "/tmp" # For Vercel deployment
 
 progress = {"status": 0, "message": "Initializing"}
 
-# Replace with your API key
-aai.settings.api_key = "2ba819026c704d648dced28f3f52406f"
-
 @app.route('/about')
 def about():
     return render_template('about.html')
