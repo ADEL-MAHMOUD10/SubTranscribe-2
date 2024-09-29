@@ -20,10 +20,6 @@ setInterval(() => {
         });
 }, 10000);
 
-setInterval(() => {
-    fetch('/download/transcript_id') 
-}, 10000);
-
 // Display selected file name dynamically
 function showFileName() {
     const fileInput = document.getElementById('file');
