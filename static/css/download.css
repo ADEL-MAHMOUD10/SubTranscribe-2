@@ -89,3 +89,9 @@ span:hover{
         transform: translateY(0);
     }
 }
+@media (max-width: 410px) {
+    .container .main-text img{
+        display: none;
+    }
+    
+}
