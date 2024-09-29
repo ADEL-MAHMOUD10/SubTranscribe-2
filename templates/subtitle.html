@@ -19,7 +19,10 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/">SubTranscribe</a>
+            <div class="d-flex align-items-center">
+                <a href="/"><img src="/static/image/subtitle.ico" style="max-width: 30px;" alt="..."></a>
+                <a class="navbar-brand" href="/">SubTranscribe</a>
+            </div>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -38,7 +41,10 @@
 
     <!-- Main Section -->
     <div class="container mt-5 fade-in">
-        <h2 class="text-center">Download Your Subtitle</h2>
+        <div class="main-text justify-content-center d-flex align-items-center mb-4">
+            <img src="/static/image/download-arrow.ico" style="max-width: 45px;" alt="">
+            <h2 class="text-center ms-1">Download Your Subtitle</h2>
+        </div>
         <form id="download-form" action="" method="POST">
             <div class="mb-3">
                 <label for="format" class="form-label">Choose Format</label>
