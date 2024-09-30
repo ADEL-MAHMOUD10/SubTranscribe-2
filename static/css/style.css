@@ -1,4 +1,4 @@
-
+@import url('https://fonts.googleapis.com/css2?family=Rowdies:wght@300;400;700&display=swap');
 * {
     scroll-behavior: smooth;
     font-family: Verdana, Geneva, Tahoma, sans-serif;
@@ -8,7 +8,26 @@ body {
     background-color: #f8f9fa;
     color: #333;
 }
+.navbar-brand{
+    font-family: "Rowdies", sans-serif;
+    font-weight: 300;
+    font-style: normal;
+}
+.nav-link {
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    font-weight: 600 !important;
+}
 
+.container h1,h2,h3{
+    font-family: "Rowdies", sans-serif;
+    font-weight: 700;
+    font-style: normal;
+    color: #1877F2 !important;
+}
+.container p{
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    font-size: 0.8rem;
+}
 .modal {
     display: none; 
     position: fixed;
@@ -18,7 +37,7 @@ body {
     width: 100%;
     height: 100%;
     overflow: auto;
-    background-color: rgba(0, 0, 0, 0.65);
+    background-color: #000000a6;
 }
 
 .modal-content {
@@ -55,8 +74,14 @@ body {
     background-color: #dc2727;
     color: white;
 }
+.nav a{
+    color: #333 !important;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
 .nav a.active{
-    font-weight: bold;
+    font-weight: bold !important;
+    color: #1877F2 !important;
+    background: red ;
 }
 .tab-container {
     display: flex;
@@ -93,9 +118,10 @@ body {
 }
 
 .tab-content {
-    border: 1px solid #e9ecef;
+    border: 2px solid #e9ecef;
     border-top: none;
     padding: 20px;
+    border-radius: 0 0 10px 10px;
 }
 
 .tab-content.active {
