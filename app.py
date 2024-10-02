@@ -2,8 +2,10 @@ import os
 import requests
 import time
 import warnings
+import pymongo 
 import moviepy.editor as mp
 from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file
+from werkzeug.utils import secure_filename
 from werkzeug.utils import secure_filename
 from datetime import datetime
 
@@ -13,7 +15,25 @@ app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = "/tmp" # For Vercel deployment
 
 progress = {"status": 0, "message": "Initializing"}
+cluster = MongoClient("mongodb+srv://Adde:1234@cluster0.1xefj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 
+def Update_progress_db(transcript_id, status, message, Section, file_name=None, link=None):
+    db = cluster["Datedb"]
+    collection = db["Main"]
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    post = {
+        "ID": transcript_id,
+        "status": status,
+        "message": message,
+        "Section": Section,
+        "file_name": file_name if file_name else "NULL",  
+        "link": link if link else "NULL",
+        "DATE": current_time
+    }
+
+    collection.insert_one(post)  
+    
 @app.route('/about')
 def about():
     return render_template('about.html')
@@ -78,6 +98,7 @@ def upload_or_link():
         if link:
             progress["status"] = 20
             progress["message"] = "Initializing"
+            transcript_id = transcribe_from_link(link)
             return transcribe_from_link(link)
 
 
@@ -117,10 +138,12 @@ def upload_or_link():
                     progress["message"] = "Uploading audio file"  
                 else:
                     os.remove(file_path)
+                    Update_progress_db(transcript_id, status=0, message="Error file", Section="Upload Page")
                     return render_template("error.html")
 
                 progress["status"] = 40
                 transcript_id = upload_audio_to_assemblyai(audio_file_path)
+                Update_progress_db(transcript_id, status=100, message="completed", Section="Download page", file_name=filename)
                 return redirect(url_for('download_subtitle', transcript_id=transcript_id))
             except Exception as e:
                 progress["status"] = 0
@@ -154,8 +177,10 @@ def transcribe_from_link(link):
                 progress["status"] = 100
                 progress["message"] = "Processing Complete"
                 # Now, instead of returning the text, redirect to the download page
+                Update_progress_db(transcript_id, status=100, message="completed", Section="Download page",link=link)
                 return redirect(url_for('download_subtitle', transcript_id=transcript_id))
             elif transcript_data['status'] == 'error':
+                Update_progress_db(transcript_id, status=0, message="Invalid Link", Section="Link",link=link)
                 return render_template("error.html")
         else:
             return render_template("error.html")
