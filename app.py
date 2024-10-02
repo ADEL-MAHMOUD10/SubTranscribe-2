@@ -146,9 +146,10 @@ def upload_or_link():
                 Update_progress_db(transcript_id, status=100, message="completed", Section="Download page", file_name=filename)
                 return redirect(url_for('download_subtitle', transcript_id=transcript_id))
             except Exception as e:
+                print(e)
                 progress["status"] = 0
                 progress["message"] = "Error: " + str(e)
-                return render_template("error.html")
+                # return render_template("error.html")
 
     else:
         return render_template('index.html')
