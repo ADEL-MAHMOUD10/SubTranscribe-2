@@ -17,7 +17,7 @@ warnings.filterwarnings("ignore", category=SyntaxWarning)
 app = Flask(__name__)
 
 # Set up Dropbox connection with the access token
-DROPBOX_ACCESS_TOKEN = 'sl.B-B_3IrIiXwZA_Ht1AO_QTGhj4CZmfX8u7Wr_2aFe0f1izyO7-8LahvUdLHMuLxlX3L8vV3l459c0L5qFJiuyXY_nYEKnOaau5FeCbIvR49mATPAlFTX2Zy-LJEhiNYi11sUBchJm1BEKvR4bpEc7lI'  # Replace this with your access token
+DROPBOX_ACCESS_TOKEN = 'sl.B-CRqG-kPOKlh5QETCE3wWyIXmTgrEfr6XaZUcx0HGA1frXoLELwMscqMhYjlJhFZylKMK1WfUXFSxzAmwpwOLCHzxsrT5-nU8SHgrE_MfEQU5_zhQs1xqfrR67nCGziCbfYnIwpQfYmtCp11dM8qXI'  # Replace this with your access token
 dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
 
 # Set up MongoDB connection
