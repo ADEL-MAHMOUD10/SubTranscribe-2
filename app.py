@@ -20,6 +20,7 @@ app = Flask(__name__)
 DROPBOX_ACCESS_TOKEN = 'sl.B-BE4Xeymfj-tneULin_T3QSL_KwKIQlH2tXePR8gUjRKaFfvk0qCgAoMRq-RQsxvkaUPBPkPFT5fqLfnanf3bPLBT_1IV27fGip_1zO7ksJqcRGXABHEPwvTbb_S8xMbzC0Z5ZDBZ6nX2nHoYrwzJ8'  # Replace this with your access token
 dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
 
+
 # Set up MongoDB connection
 cluster = MongoClient("mongodb+srv://Adde:1234@cluster0.1xefj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 # Initial progress status
