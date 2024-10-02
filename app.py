@@ -150,7 +150,8 @@ def upload_or_link():
                 progress["message"] = "Error: " + str(e)
                 return render_template("error.html")
 
-    return render_template('index.html')
+    else:
+        return render_template('index.html')
 
 def transcribe_from_link(link):
     base_url = "https://api.assemblyai.com/v2"
