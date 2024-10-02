@@ -60,7 +60,7 @@ def upload_audio_to_assemblyai(audio_path):
     
     progress["message"] = "Uploading"
     progress["status"] = 15  # Update the status after starting the upload
-    time.sleep(5)  # Wait a bit before monitoring
+
 
     return transcript_id
 
