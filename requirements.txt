@@ -1,4 +1,4 @@
-Python==3.12.4
+Python==3.12.1
 pip==24.2
 Flask==2.0.3
 requests==2.26.0
