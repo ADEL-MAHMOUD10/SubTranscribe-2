@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script type="text/javascript" src="https://www.dropbox.com/static/api/2/dropins.js" id="dropboxjs" data-app-key="0lbtzuve5h2p8vf"></script>
     <title>SubTranscribe</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="shortcut icon" href="/static/image/subtitle.ico">
@@ -12,6 +11,7 @@
   </head>
   <body>
     <!-- Navbar -->
+     
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
       <div class="container-fluid">
         <div class="d-flex align-items-center">
@@ -51,9 +51,8 @@
     
     <!-- Main Section -->
     <div class="container mt-5 fade-in">
-      <h2 class="d-flex justify-content-center">Transcribe
-        Audio to Text,
-        Fast & Securely.</h2>
+      <h1 class="transcription-header">Transcribe Audio to Text, Fast & Securely.</h1>
+
         
         <div class="nav nav-tabs justify-content-center mt-4" id="nav-tab" role="tablist">
           <a class="nav-item nav-link active" id="nav-audio-tab" data-toggle="tab" href="#nav-audio" role="tab" aria-controls="nav-audio" aria-selected="true">Audio File</a>
@@ -99,7 +98,6 @@
       </div>
       
       <div class="space mt-3 justify-content-center d-flex">
-        &nbsp;
         <span style="visibility: hidden;">.</span>
         <script src="https://unpkg.com/@dotlottie/player-component@latest/dist/dotlottie-player.mjs" type="module"></script> 
         <dotlottie-player src="https://lottie.host/7c8f398b-f4b8-4279-bf62-d938f8d297b7/re4LsK50Oo.json" background="transparent" speed="1" style="width: 300px; height: 150px;" loop autoplay></dotlottie-player>
@@ -140,8 +138,8 @@
           </div>
           
           <div class="space mt-3 justify-content-center d-flex">
-            &nbsp;
             <span style="visibility: hidden;">.</span>
+            &nbsp;
             <script src="https://unpkg.com/@dotlottie/player-component@latest/dist/dotlottie-player.mjs" type="module"></script> 
             <dotlottie-player src="https://lottie.host/7c8f398b-f4b8-4279-bf62-d938f8d297b7/re4LsK50Oo.json" background="transparent" speed="1" style="width: 300px; height: 150px;" loop autoplay></dotlottie-player>
           </div>
@@ -151,11 +149,17 @@
               <div class="col-md-4 mb-4">
                 <img src="/static/image/undraw.svg" style="max-width: 100%;" alt="">
               </div>
-              <div class="col">
+              <div class="col text-center d-block d-sm-none">
                 <h1>Create Subtitles for Videos</h1>
-                <p> Upload your audio or video files and export your automatic transcripts in SRT or WebVTT subtitle files.
-                  Upload these subtitle files to YouTube, Facebook, Vimeo and other video players to make your videos instantly accessible with captions. </p>
-                </div>
+                <p>Upload your audio or video files and export your automatic transcripts in SRT or WebVTT subtitle files.
+                  Upload these subtitle files to YouTube, Facebook, Vimeo and other video players to make your videos instantly accessible with captions.</p>
+            </div>
+            
+            <div class="col d-none d-sm-block text-start">
+                <h1>Create Subtitles for Videos</h1>
+                <p>Upload your audio or video files and export your automatic transcripts in SRT or WebVTT subtitle files.
+                  Upload these subtitle files to YouTube, Facebook, Vimeo and other video players to make your videos instantly accessible with captions.</p>
+            </div>
         </div>
       </div>
       
