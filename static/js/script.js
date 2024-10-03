@@ -70,11 +70,8 @@ function showWarningMessage() {
     if (linkInput) {
         const warningModal = document.getElementById('messageModal');
         const warningText = `
-            <div style="background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px; font-family: Arial, sans-serif; margin-top: 10px;">
-                <strong style="color: #721c24;">Warning:</strong> The link provided may not work correctly. <br><br>
-                Some platforms like YouTube and Twitter may have restrictions. Please make sure the link points directly to an audio or video file. <br><br>
-                <strong style="color: #721c24;">Tips:</strong> Check the link structure or try downloading the file first and then upload it for better results.
-            </div>
+            Some links (like YouTube and Twitter) may not work at the moment.
+            Please ensure the link points directly to an audio or video file.
         `;
         warningModal.querySelector('p').innerText = warningText;
         warningModal.style.display = 'block';
