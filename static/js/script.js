@@ -39,35 +39,25 @@ function updateProgress() {
 updateProgress();
 
 
-// Display the selected file name dynamically when a file is chosen.
+// Display selected file name dynamically
 function showFileName() {
     const fileInput = document.getElementById('file');
     const fileNameDisplay = document.getElementById('fileName');
     const selectedFile = fileInput.files[0];
-
-    // Show the file name only if a file is selected.
-    if (selectedFile) {
-        fileNameDisplay.textContent = "Selected file: " + selectedFile.name;
-        fileNameDisplay.style.display = 'block';
-    } else {
-        fileNameDisplay.style.display = 'none';
-    }
+    fileNameDisplay.textContent = selectedFile ? "Selected file: " + selectedFile.name : '';
+    fileNameDisplay.style.display = 'block'; // Show the file name display
 }
 
-// Initialize modals and warning messages when the page loads.
 document.addEventListener('DOMContentLoaded', function() {
     const messageModal = document.getElementById('messageModal');
     const closeButton = document.querySelector('.close-button');
 
-    // Display the message modal on page load.
     messageModal.style.display = 'block';
 
-    // Close the message modal when the close button is clicked.
     closeButton.addEventListener('click', function() {
         messageModal.style.display = 'none';
     });
 
-    // Close the modal when clicking outside the modal box.
     window.addEventListener('click', function(event) {
         if (event.target === messageModal) {
             messageModal.style.display = 'none';
@@ -75,39 +65,30 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Show a styled red warning message if an invalid link is entered.
 function showWarningMessage() {
     const linkInput = document.getElementById('link').value;
     if (linkInput) {
         const warningModal = document.getElementById('messageModal');
-        const warningContent = document.createElement('div');
-        
-        // Set up the content of the warning message with red styling.
-        warningContent.innerHTML = `
+        const warningText = `
             <div style="background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px; font-family: Arial, sans-serif; margin-top: 10px;">
                 <strong style="color: #721c24;">Warning:</strong> The link provided may not work correctly. <br><br>
                 Some platforms like YouTube and Twitter may have restrictions. Please make sure the link points directly to an audio or video file. <br><br>
                 <strong style="color: #721c24;">Tips:</strong> Check the link structure or try downloading the file first and then upload it for better results.
             </div>
         `;
-
-        // Update the warning modal content and display it.
-        warningModal.querySelector('p').innerText = ''; // Clear previous text content.
-        warningModal.querySelector('p').appendChild(warningContent); // Append new warning content.
+        warningModal.querySelector('p').innerText = warningText;
         warningModal.style.display = 'block';
     }
 }
 
-// Re-attach close button event listener for the modal if needed.
+// Close modal functionality
 document.querySelector('.close-button').addEventListener('click', function() {
     document.getElementById('messageModal').style.display = 'none';
 });
 
-// Close the modal when clicking outside of it.
 window.onclick = function(event) {
     const modal = document.getElementById('messageModal');
     if (event.target === modal) {
         modal.style.display = 'none';
     }
 };
-
