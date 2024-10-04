@@ -7,7 +7,6 @@ import pymongo
 from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file
 from werkzeug.utils import secure_filename
 from datetime import datetime
-import dropbox  # Importing the Dropbox library
 from pymongo import MongoClient
 
 # Suppress specific warnings
@@ -16,18 +15,16 @@ warnings.filterwarnings("ignore", category=SyntaxWarning)
 # Create a Flask application instance
 app = Flask(__name__)
 
-# Set up Dropbox connection with the access token
-DROPBOX_ACCESS_TOKEN = 'sl.B-FNXoRHj60fWgN5LJ1CGrrRSlQXFAihXzN-uyIeKc7z7yjjYFU5SSXKf1R-xmrY1oLvEXjEF9sIAnMWEZ_crx7XvtzNwrm4A7IRctrhp1fKS0-LpuY3JAx8rWSYMhB8YnLxqLYg6nlGexw9QaNK_qM'  # Replace this with your access token
-dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
-
 # Set up MongoDB connection
 cluster = MongoClient("mongodb+srv://Adde:1234@cluster0.1xefj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+db = cluster["Datedb"]  # Specify the database name
+audio_collection = db["AudioFiles"]  # Collection for storing audio files
+
 # Initial progress status
 progress = {"status": 0, "message": "Initializing"}
 
 def Update_progress_db(transcript_id, status, message, Section, file_name=None, link=None):
     """Update the progress status in the MongoDB database."""
-    db = cluster["Datedb"]  # Specify the database name
     collection = db["Main"]  # Specify the collection name
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Get the current time
 
@@ -50,10 +47,21 @@ def about():
     """Render the about page."""
     return render_template('about.html')
 
-def upload_audio_to_dropbox(file_path):
-    """Upload audio file to Dropbox."""
+def upload_audio_to_mongodb(file_path):
+    """Upload audio file to MongoDB."""
     with open(file_path, "rb") as f:
-        dbx.files_upload(f.read(), f'/audio/{os.path.basename(file_path)}', mute=True)
+        audio_data = f.read()  # Read the audio file as binary data
+
+    # Prepare the document with file metadata and binary data
+    audio_document = {
+        "filename": os.path.basename(file_path),
+        "file_data": audio_data,
+        "upload_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+    # Insert the document into the collection
+    audio_id = audio_collection.insert_one(audio_document).inserted_id  # Store and get the audio file ID
+    return audio_id
 
 def upload_audio_to_assemblyai(audio_path):
     """Upload audio file to AssemblyAI for transcription."""
@@ -127,8 +135,7 @@ def upload_or_link():
 
             progress["status"] = 10  # Update status
             filename = secure_filename(file.filename)  # Secure the filename
-            file_path = f'{filename}'  # Use a temporary file path
-
+            file_path = f'{filename}' 
             try:
                 file.save(file_path)  # Save the uploaded file
                 file_extension = os.path.splitext(file_path)[1].lower()  # Get the file extension
@@ -155,8 +162,8 @@ def upload_or_link():
                     Update_progress_db(transcript_id, status=0, message="Error file", Section="Upload Page")
                     return render_template("error.html")  # Render error page if file type is not allowed
 
-                # Upload the audio file to Dropbox
-                upload_audio_to_dropbox(audio_file_path)
+                # Upload the audio file to MongoDB
+                audio_id = upload_audio_to_mongodb(audio_file_path)
 
                 progress["status"] = 40  # Update status
                 transcript_id = upload_audio_to_assemblyai(audio_file_path)  # Upload audio to AssemblyAI
@@ -192,15 +199,8 @@ def transcribe_from_link(link):
             transcript_data = transcript_response.json()  # Get the transcription data
             progress["status"] = 80  # Update status
             if transcript_data['status'] == 'completed':
-                progress["status"] = 100  # Update status to completed
-                progress["message"] = "Processing Complete"  # Update message
-                Update_progress_db(transcript_id, status=100, message="completed", Section="Download page", link=link)
-                return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download subtitle
-            elif transcript_data['status'] == 'error':
-                Update_progress_db(transcript_id, status=0, message="Invalid Link", Section="Link", link=link)
-                return render_template("error.html")  # Render error page if there's an error
-        else:
-            return render_template("error.html")  # Render error page if request fails
+                progress["status"] = 100  # Update status on completion
+                return transcript_data['text']  # Return the transcribed text
 
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
@@ -247,7 +247,6 @@ def serve_file(filename):
         except TypeError:
             return render_template("error.html")  # Render error page on type error
     
-if __name__ == '__main__':
-    # Run the Flask application
-    app.run(host='0.0.0.0')
-
+# Main entry point
+if __name__ == "__main__":
+    app.run(debug=True, port=5000)
