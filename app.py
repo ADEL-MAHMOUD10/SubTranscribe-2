@@ -211,51 +211,51 @@ def transcribe_from_link(link):
                 return render_template("error.html")
         else:
             return render_template("error.html")
-            
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
+    """Handle subtitle download based on the transcript ID."""
+    progress["message"] = "Processing Complete"  # Update progress message
+    progress["status"] = 100  # Update status
     if request.method == 'POST':
-        file_format = request.form['format']
+        file_format = request.form['format']  # Get the requested file format
         headers = {"authorization": "2ba819026c704d648dced28f3f52406f"}
         url = f"https://api.assemblyai.com/v2/transcript/{transcript_id}/{file_format}"
 
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers)  # Request the subtitle file
         if response.status_code == 200:
-            progress["message"] = "Downladed"
-            progress["status"] = 100
-            timesub = datetime.now().strftime("%Y%m%d_%H%M%S")
-            subtitle_file = f"subtitle_{timesub}.{file_format}"
-            subtitle_path = os.path.join(app.config['UPLOAD_FOLDER'], subtitle_file)
-            with open(subtitle_path, 'w') as f:
-                f.write(response.text)
+            timesub = datetime.now().strftime("%Y%m%d_%H%M%S")  # Generate a timestamp for the subtitle file
+            subtitle_file = f"subtitle_{timesub}.{file_format}"  # Create the subtitle filename
+            with open(subtitle_file, 'w') as f:
+                f.write(response.text)  # Write the subtitle text to the file
             
-            return redirect(url_for('serve_file', filename=subtitle_file))
+            return redirect(url_for('serve_file', filename=subtitle_file))  # Redirect to serve the file
         else:
-            return render_template("error.html")
-    return render_template('subtitle.html')
+            return render_template("error.html")  # Render error page if request fails
+    return render_template('subtitle.html')  # Render the subtitle download page
 
 @app.route('/serve/<filename>')
 def serve_file(filename):
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    """Serve the subtitle file for download."""
+    file_path = filename  # Use a temporary path for the file
 
-    if os.path.exists(file_path):
+    if os.path.exists(file_path):  # Check if the file exists
         try:
-            response = send_file(file_path, as_attachment=True)
+            response = send_file(file_path, as_attachment=True)  # Send the file as an attachment
             
             try:
-                os.remove(file_path)
+                os.remove(file_path)  # Remove the file after sending
             except PermissionError:
-                time.sleep(1) 
+                time.sleep(1)  # Wait a moment if there is a permission error
             
-            return response
+            return response  # Return the file response
         except Exception:
-            return render_template("error.html")
+            return render_template("error.html")  # Render error page if sending fails
         except FileNotFoundError:
-            return render_template("error.html")
+            return render_template("error.html")  # Render error page if file not found
         except TypeError:
-            return render_template("error.html")
-            
+            return render_template("error.html")  # Render error page on type error
+    
 # Main entry point
 if __name__ == "__main__":
-    app.run(host="0.0.0.0",debug=True)
+    app.run(host="0.0.0.0",debug=True, port=8000)
 
