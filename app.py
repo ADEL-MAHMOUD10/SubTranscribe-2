@@ -49,6 +49,7 @@ def about():
 
 def upload_audio_to_mongodb(file_path):
     """Upload audio file to MongoDB."""
+    file_size_mb = os.path.getsize(file_path) / (1024 * 1024) 
     with open(file_path, "rb") as f:
         audio_data = f.read()  # Read the audio file as binary data
 
@@ -56,6 +57,7 @@ def upload_audio_to_mongodb(file_path):
     audio_document = {
         "filename": os.path.basename(file_path),
         "file_data": audio_data,
+        "file_size_mb": round(file_size_mb, 2),  # Store the file size rounded to 2 decimal places
         "upload_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
 
@@ -145,9 +147,15 @@ def upload_or_link():
                     video = mp.VideoFileClip(file_path)  # Load the video file
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Generate a timestamp
                     audio_file_path = f'audio_{timestamp}.mp3'  # Use a temporary audio file path
-                    video.audio.write_audiofile(audio_file_path)  # Convert video to audio
-                    video.reader.close()  # Close the video reader
-                    video.audio.reader.close_proc()  # Close the audio reader
+                    try:
+                        video.audio.write_audiofile(audio_file_path)  # Convert video to audio
+                    except MemoryError:
+                        progress["status"] = 0  # Reset status on memory error
+                        progress["message"] = "MemoryError: Unable to process the video file."  # Update message
+                        return render_template("error.html")  # Render error page
+                    finally:
+                        video.reader.close()  # Close the video reader
+                        video.audio.reader.close_proc()  # Close the audio reader
                     progress["status"] = 25  # Update status
                     progress["message"] = "Converting to Audio file"  # Update message
                     os.remove(file_path)  # Remove the original video file
@@ -194,13 +202,15 @@ def transcribe_from_link(link):
 
     while True:
         # Check the status of the transcription
-        transcript_response = requests.get(f"{base_url}/transcript/{transcript_id}", headers=headers)
-        if transcript_response.status_code == 200:
-            transcript_data = transcript_response.json()  # Get the transcription data
-            progress["status"] = 80  # Update status
-            if transcript_data['status'] == 'completed':
-                progress["status"] = 100  # Update status on completion
-                return transcript_data['text']  # Return the transcribed text
+        status_response = requests.get(f"{base_url}/transcript/{transcript_id}", headers=headers)
+        if status_response.json()['status'] in ['completed', 'failed']:
+            break
+        time.sleep(5)  # Wait before checking again
+
+    if status_response.json()['status'] == 'completed':
+        return transcript_id  # Return transcript ID if completed
+    else:
+        return "Transcription failed"  # Return failure message
 
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
@@ -249,4 +259,4 @@ def serve_file(filename):
     
 # Main entry point
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(host="0.0.0.0",debug=True, port=8000)
