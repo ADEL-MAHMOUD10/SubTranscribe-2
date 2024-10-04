@@ -155,7 +155,10 @@ def upload_or_link():
                     video = mp.VideoFileClip(file_path)  # Load the video file
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Generate a timestamp
                     audio_file_path = f'audio_{timestamp}.mp3'  # Use a temporary audio file path
-                    video.audio.write_audiofile(audio_file_path)  # Convert video to audio
+                    # تقليل حجم الفيديو والصوت
+                    video.audio.write_audiofile(audio_file_path, codec='libmp3lame', bitrate='96k')
+                    video = video.resize(0.5)  # تقليل حجم الفيديو إلى 50% من الحجم الأصلي (يمكنك ضبط النسبة)
+                    video.write_videofile(file_path, codec='libx264', bitrate='800k')  # حفظ الفيديو بحجم أقل
                     video.reader.close()  # Close the video reader
                     video.audio.reader.close_proc()  # Close the audio reader
                     progress["status"] = 25  # Update status
@@ -265,3 +268,4 @@ def serve_file(filename):
 # Main entry point
 if __name__ == "__main__":
     app.run(host="0.0.0.0",debug=True, port=8000)
+
