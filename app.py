@@ -4,6 +4,7 @@ import time
 import warnings
 import moviepy.editor as mp
 import pymongo
+import gridfs
 from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file
 from werkzeug.utils import secure_filename
 from datetime import datetime
@@ -19,6 +20,7 @@ app = Flask(__name__)
 cluster = MongoClient("mongodb+srv://Adde:1234@cluster0.1xefj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 db = cluster["Datedb"]  # Specify the database name
 audio_collection = db["AudioFiles"]  # Collection for storing audio files
+fs = gridfs.GridFS(db)  # Create a GridFS instance for file storage
 
 # Initial progress status
 progress = {"status": 0, "message": "Initializing"}
@@ -47,22 +49,11 @@ def about():
     """Render the about page."""
     return render_template('about.html')
 
-def upload_audio_to_mongodb(file_path):
-    """Upload audio file to MongoDB."""
-    file_size_mb = os.path.getsize(file_path) / (1024 * 1024) 
+def upload_audio_to_gridfs(file_path):
+    """Upload audio file to MongoDB using GridFS."""
     with open(file_path, "rb") as f:
-        audio_data = f.read()  # Read the audio file as binary data
-
-    # Prepare the document with file metadata and binary data
-    audio_document = {
-        "filename": os.path.basename(file_path),
-        "file_data": audio_data,
-        "file_size_mb": round(file_size_mb, 2),  # Store the file size rounded to 2 decimal places
-        "upload_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
-
-    # Insert the document into the collection
-    audio_id = audio_collection.insert_one(audio_document).inserted_id  # Store and get the audio file ID
+        # Store the file in GridFS and return the file ID
+        audio_id = fs.put(f, filename=os.path.basename(file_path), content_type='audio/mpeg')
     return audio_id
 
 def upload_audio_to_assemblyai(audio_path):
@@ -116,13 +107,10 @@ def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'.mp4', '.wmv', '.mov', '.mkv', '.h.264', '.mp3', '.wav'}
     return '.' in filename and os.path.splitext(filename)[1].lower() in ALLOWED_EXTENSIONS
 
-def delete_audio_from_mongodb(audio_id):
-    """Delete audio file document from MongoDB using audio ID."""
-    result = audio_collection.delete_one({"_id": audio_id})  # Delete the document by ID
-    if result.deleted_count > 0:
-        print(f"Audio file with ID {audio_id} deleted successfully.")
-    else:
-        print(f"No audio file found with ID {audio_id}.")
+def delete_audio_from_gridfs(audio_id):
+    """Delete audio file document from GridFS using audio ID."""
+    fs.delete(audio_id)  # Delete the file from GridFS
+    print(f"Audio file with ID {audio_id} deleted successfully.")
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_or_link():
@@ -155,10 +143,10 @@ def upload_or_link():
                     video = mp.VideoFileClip(file_path)  # Load the video file
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Generate a timestamp
                     audio_file_path = f'audio_{timestamp}.mp3'  # Use a temporary audio file path
-                    # تقليل حجم الفيديو والصوت
+                    # Reduce the size of the video and audio
                     video.audio.write_audiofile(audio_file_path, codec='libmp3lame', bitrate='96k')
-                    video = video.resize(0.5)  # تقليل حجم الفيديو إلى 50% من الحجم الأصلي (يمكنك ضبط النسبة)
-                    video.write_videofile(file_path, codec='libx264', bitrate='800k')  # حفظ الفيديو بحجم أقل
+                    video = video.resize(0.5)  # Reduce the video size to 50% of the original size (you can adjust this ratio)
+                    video.write_videofile(file_path, codec='libx264', bitrate='800k')  # Save the video with a smaller size
                     video.reader.close()  # Close the video reader
                     video.audio.reader.close_proc()  # Close the audio reader
                     progress["status"] = 25  # Update status
@@ -175,15 +163,15 @@ def upload_or_link():
                     Update_progress_db(transcript_id, status=0, message="Error file", Section="Upload Page")
                     return render_template("error.html")  # Render error page if file type is not allowed
 
-                # Upload the audio file to MongoDB
-                audio_id = upload_audio_to_mongodb(audio_file_path)
+                # Upload the audio file to GridFS
+                audio_id = upload_audio_to_gridfs(audio_file_path)
 
                 progress["status"] = 40  # Update status
                 transcript_id = upload_audio_to_assemblyai(audio_file_path)  # Upload audio to AssemblyAI
                 Update_progress_db(transcript_id, status=100, message="completed", Section="Download page", file_name=filename)
                 
-                # Delete the audio file from MongoDB after redirecting
-                delete_audio_from_mongodb(audio_id)  # Call the delete function
+                # Delete the audio file from GridFS after redirecting
+                delete_audio_from_gridfs(audio_id)  # Call the delete function
                 return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download subtitle
             except Exception as e:
                 progress["status"] = 0  # Reset status on error
@@ -209,16 +197,15 @@ def transcribe_from_link(link):
     transcript_id = response.json()['id']  # Get the transcript ID
 
     while True:
-        # Check the status of the transcription
-        status_response = requests.get(f"{base_url}/transcript/{transcript_id}", headers=headers)
-        if status_response.json()['status'] in ['completed', 'failed']:
-            break
-        time.sleep(5)  # Wait before checking again
-
-    if status_response.json()['status'] == 'completed':
-        return transcript_id  # Return transcript ID if completed
+        time.sleep(5)  # Wait for a few seconds
+        response = requests.get(f"{base_url}/transcript/{transcript_id}", headers=headers)  # Check transcription status
+        if response.json()['status'] in ['completed', 'failed']:
+            break  # Exit the loop if transcription is complete or failed
+    
+    if response.json()['status'] == 'completed':
+        return transcript_id  # Return the transcript ID if completed
     else:
-        return "Transcription failed"  # Return failure message
+        return "Transcription failed"  # Return error message if failed
 
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
