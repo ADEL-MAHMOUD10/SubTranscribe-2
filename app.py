@@ -143,16 +143,12 @@ def upload_or_link():
                     video = mp.VideoFileClip(file_path)  # Load the video file
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Generate a timestamp
                     audio_file_path = f'audio_{timestamp}.mp3'  # Use a temporary audio file path
-                    # Reduce the size of the video and audio
-                    video.audio.write_audiofile(audio_file_path, codec='libmp3lame', bitrate='96k')
-                    video = video.resize(0.5)  # Reduce the video size to 50% of the original size (you can adjust this ratio)
-                    video.write_videofile(file_path, codec='libx264', bitrate='800k')  # Save the video with a smaller size
+                    video.audio.write_audiofile(audio_file_path)  # Convert video to audio
                     video.reader.close()  # Close the video reader
                     video.audio.reader.close_proc()  # Close the audio reader
                     progress["status"] = 25  # Update status
                     progress["message"] = "Converting to Audio file"  # Update message
                     os.remove(file_path)  # Remove the original video file
-
                 # Process audio files
                 elif file_extension in [".mp3", ".wav"]:
                     audio_file_path = file_path  # Use the uploaded audio file
@@ -186,27 +182,35 @@ def transcribe_from_link(link):
     base_url = "https://api.assemblyai.com/v2"
     headers = {"authorization": "2ba819026c704d648dced28f3f52406f"}
 
-    data = {"audio_url": link}  # Prepare the data with the audio URL
-    response = requests.post(base_url + "/transcript", json=data, headers=headers)  # Request transcription
+    # Create a payload with the URL
+    data = {"audio_url": link}
+    response = requests.post(base_url + "/transcript", json=data, headers=headers)
     
-    progress["status"] = 40  # Update status
-    progress["message"] = "Processing"  # Update message
+    progress["status"] = 40
+    progress["message"] = "Processing"
     if response.status_code != 200:
-        return f"Error creating transcript: {response.json()}"  # Return error if transcription failed
-
-    transcript_id = response.json()['id']  # Get the transcript ID
-
-    while True:
-        time.sleep(5)  # Wait for a few seconds
-        response = requests.get(f"{base_url}/transcript/{transcript_id}", headers=headers)  # Check transcription status
-        if response.json()['status'] in ['completed', 'failed']:
-            break  # Exit the loop if transcription is complete or failed
+        return f"Error creating transcript: {response.json()}"
     
-    if response.json()['status'] == 'completed':
-        return transcript_id  # Return the transcript ID if completed
-    else:
-        return "Transcription failed"  # Return error message if failed
+    transcript_id = response.json()['id']
 
+
+    # Poll for the transcript status
+    while True:
+        transcript_response = requests.get(f"{base_url}/transcript/{transcript_id}", headers=headers)
+        if transcript_response.status_code == 200:
+            transcript_data = transcript_response.json()
+            progress["status"] = 80
+            if transcript_data['status'] == 'completed':
+                progress["status"] = 100
+                progress["message"] = "Processing Complete"
+                # Now, instead of returning the text, redirect to the download page
+                Update_progress_db(transcript_id, status=100, message="completed", Section="Download page",link=link)
+                return redirect(url_for('download_subtitle', transcript_id=transcript_id))
+            elif transcript_data['status'] == 'error':
+                Update_progress_db(transcript_id, status=0, message="Invalid Link", Section="Link",link=link)
+                return render_template("error.html")
+        else:
+            return render_template("error.html")
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
     """Handle subtitle download based on the transcript ID."""
