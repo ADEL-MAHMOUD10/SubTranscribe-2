@@ -116,6 +116,14 @@ def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'.mp4', '.wmv', '.mov', '.mkv', '.h.264', '.mp3', '.wav'}
     return '.' in filename and os.path.splitext(filename)[1].lower() in ALLOWED_EXTENSIONS
 
+def delete_audio_from_mongodb(audio_id):
+    """Delete audio file document from MongoDB using audio ID."""
+    result = audio_collection.delete_one({"_id": audio_id})  # Delete the document by ID
+    if result.deleted_count > 0:
+        print(f"Audio file with ID {audio_id} deleted successfully.")
+    else:
+        print(f"No audio file found with ID {audio_id}.")
+
 @app.route('/', methods=['GET', 'POST'])
 def upload_or_link():
     """Handle file uploads or links for transcription."""
@@ -147,15 +155,9 @@ def upload_or_link():
                     video = mp.VideoFileClip(file_path)  # Load the video file
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Generate a timestamp
                     audio_file_path = f'audio_{timestamp}.mp3'  # Use a temporary audio file path
-                    try:
-                        video.audio.write_audiofile(audio_file_path)  # Convert video to audio
-                    except MemoryError:
-                        progress["status"] = 0  # Reset status on memory error
-                        progress["message"] = "MemoryError: Unable to process the video file."  # Update message
-                        return render_template("error.html")  # Render error page
-                    finally:
-                        video.reader.close()  # Close the video reader
-                        video.audio.reader.close_proc()  # Close the audio reader
+                    video.audio.write_audiofile(audio_file_path)  # Convert video to audio
+                    video.reader.close()  # Close the video reader
+                    video.audio.reader.close_proc()  # Close the audio reader
                     progress["status"] = 25  # Update status
                     progress["message"] = "Converting to Audio file"  # Update message
                     os.remove(file_path)  # Remove the original video file
@@ -176,6 +178,9 @@ def upload_or_link():
                 progress["status"] = 40  # Update status
                 transcript_id = upload_audio_to_assemblyai(audio_file_path)  # Upload audio to AssemblyAI
                 Update_progress_db(transcript_id, status=100, message="completed", Section="Download page", file_name=filename)
+                
+                # Delete the audio file from MongoDB after redirecting
+                delete_audio_from_mongodb(audio_id)  # Call the delete function
                 return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download subtitle
             except Exception as e:
                 progress["status"] = 0  # Reset status on error
