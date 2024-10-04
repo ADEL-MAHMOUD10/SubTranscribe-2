@@ -127,7 +127,7 @@ def upload_or_link():
 
             progress["status"] = 10  # Update status
             filename = secure_filename(file.filename)  # Secure the filename
-            file_path = f'/tmp/{filename}'  # Use a temporary file path
+            file_path = f'{filename}'  # Use a temporary file path
 
             try:
                 file.save(file_path)  # Save the uploaded file
@@ -137,7 +137,7 @@ def upload_or_link():
                 if file_extension in [".mp4", ".wmv", ".mov", ".mkv", ".h.264"]:
                     video = mp.VideoFileClip(file_path)  # Load the video file
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Generate a timestamp
-                    audio_file_path = f'/tmp/audio_{timestamp}.mp3'  # Use a temporary audio file path
+                    audio_file_path = f'audio_{timestamp}.mp3'  # Use a temporary audio file path
                     video.audio.write_audiofile(audio_file_path)  # Convert video to audio
                     video.reader.close()  # Close the video reader
                     video.audio.reader.close_proc()  # Close the audio reader
@@ -216,7 +216,7 @@ def download_subtitle(transcript_id):
         if response.status_code == 200:
             timesub = datetime.now().strftime("%Y%m%d_%H%M%S")  # Generate a timestamp for the subtitle file
             subtitle_file = f"subtitle_{timesub}.{file_format}"  # Create the subtitle filename
-            subtitle_path = f'/tmp/{subtitle_file}'  # Use a temporary path for the subtitle file
+            subtitle_path = f'{subtitle_file}'  # Use a temporary path for the subtitle file
             with open(subtitle_path, 'w') as f:
                 f.write(response.text)  # Write the subtitle text to the file
             
@@ -228,7 +228,7 @@ def download_subtitle(transcript_id):
 @app.route('/serve/<filename>')
 def serve_file(filename):
     """Serve the subtitle file for download."""
-    file_path = f'/tmp/{filename}'  # Use a temporary path for the file
+    file_path = f'{filename}'  # Use a temporary path for the file
 
     if os.path.exists(file_path):  # Check if the file exists
         try:
