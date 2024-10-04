@@ -60,7 +60,7 @@ This project is a web application built with Flask that allows users to upload a
 
 5. Open your web browser and go to:
    ```
-   http://127.0.0.1:5000
+   http://127.0.0.1:8000
    ```
 
 6. Use the interface to upload files, which will be saved to the server's `uploads/` directory.
