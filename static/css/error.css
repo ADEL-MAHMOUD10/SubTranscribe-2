@@ -9,26 +9,6 @@
 body{
     background-color: #181818;
 }
-.tools{
-    display: flex;
-    margin: 15px;
-    align-items: center;
-}
-.circle span{
-    display: flex;
-    margin: 5px;
-    padding: 20px;
-    border-radius: 50%;
-}
-.red{
-    background: #ff605c;
-}
-.yellow{
-    background: #ffbd44;
-}
-.green{
-    background: #00ca4e;
-}
 
 .error{
     display: flex;
