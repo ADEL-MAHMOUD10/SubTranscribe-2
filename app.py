@@ -19,7 +19,6 @@ app = Flask(__name__)
 # Set up MongoDB connection
 cluster = MongoClient("mongodb+srv://Adde:1234@cluster0.1xefj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 db = cluster["Datedb"]  # Specify the database name
-audio_collection = db["AudioFiles"]  # Collection for storing audio files
 fs = gridfs.GridFS(db)  # Create a GridFS instance for file storage
 
 # Initial progress status
@@ -53,9 +52,17 @@ def upload_audio_to_gridfs(file_path):
     """Upload audio file to MongoDB using GridFS."""
     with open(file_path, "rb") as f:
         # Store the file in GridFS and return the file ID
-        audio_id = fs.put(f, filename=os.path.basename(file_path), content_type='audio/mpeg')
+        audio_id = fs.put(f, filename=os.path.basename(file_path), content_type='audio/video')
+
     return audio_id
 
+def Create_subtitle_to_db(subtitle_path):
+    """Create subtitle file to MongoDB."""
+    with open(subtitle_path, "rb") as subtitle_file:
+        # Store the file in GridFS and return the file ID
+        subtitle_id = fs.put(subtitle_file, filename=os.path.basename(subtitle_path), content_type='SRT/VTT')
+    return subtitle_id
+    
 def upload_audio_to_assemblyai(audio_path):
     """Upload audio file to AssemblyAI for transcription."""
     global progress
@@ -211,6 +218,7 @@ def transcribe_from_link(link):
                 return render_template("error.html")
         else:
             return render_template("error.html")
+        
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
     """Handle subtitle download based on the transcript ID."""
@@ -228,6 +236,7 @@ def download_subtitle(transcript_id):
             with open(subtitle_file, 'w') as f:
                 f.write(response.text)  # Write the subtitle text to the file
             
+            subtitle_path = Create_subtitle_to_db(subtitle_file)
             return redirect(url_for('serve_file', filename=subtitle_file))  # Redirect to serve the file
         else:
             return render_template("error.html")  # Render error page if request fails
@@ -236,7 +245,7 @@ def download_subtitle(transcript_id):
 @app.route('/serve/<filename>')
 def serve_file(filename):
     """Serve the subtitle file for download."""
-    file_path = filename  # Use a temporary path for the file
+    file_path = os.path.join(os.getcwd(), filename)  # Use a full path for the file
 
     if os.path.exists(file_path):  # Check if the file exists
         try:
@@ -257,5 +266,5 @@ def serve_file(filename):
     
 # Main entry point
 if __name__ == "__main__":
-    app.run(host="0.0.0.0",debug=True, port=8000)
+    app.run(host="0.0.0.0",debug=True)
 
