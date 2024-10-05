@@ -4,6 +4,7 @@ import time
 import warnings
 import moviepy.editor as mp
 import pymongo
+import ffmpeg
 import gridfs
 from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file
 from werkzeug.utils import secure_filename
@@ -147,15 +148,11 @@ def upload_or_link():
 
                 # Process video files
                 if file_extension in [".mp4", ".wmv", ".mov", ".mkv", ".h.264"]:
-                    video = mp.VideoFileClip(file_path)  # Load the video file
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Generate a timestamp
-                    audio_file_path = f'audio_{timestamp}.mp3'  # Use a temporary audio file path
-                    video.audio.write_audiofile(audio_file_path)  # Convert video to audio
-                    video.reader.close()  # Close the video reader
-                    video.audio.reader.close_proc()  # Close the audio reader
+                    audio_file_path = convert_video_to_audio(file_path)  # Convert video to audio
                     progress["status"] = 25  # Update status
                     progress["message"] = "Converting to Audio file"  # Update message
                     os.remove(file_path)  # Remove the original video file
+
                 # Process audio files
                 elif file_extension in [".mp3", ".wav"]:
                     audio_file_path = file_path  # Use the uploaded audio file
@@ -183,6 +180,18 @@ def upload_or_link():
 
     else:
         return render_template('index.html')  # Render the index page if GET request
+    
+def convert_video_to_audio(video_path):
+    """Convert video file to audio using ffmpeg."""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    audio_file_path = f'audio_{timestamp}.mp3'
+    
+    try:
+        ffmpeg.input(video_path).output(audio_file_path).run(overwrite_output=True)
+        return audio_file_path
+    except Exception as e:
+        print(f"Error converting video to audio: {e}")
+        return None
 
 def transcribe_from_link(link):
     """Transcribe audio from a provided link."""
