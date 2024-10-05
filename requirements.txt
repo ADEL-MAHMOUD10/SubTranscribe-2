@@ -10,3 +10,4 @@ pymongo==4.10.0
 dnspython==2.6.1
 gunicorn==23.0.0
 ffmpeg-python==0.2.0
+ffmpeg==1.4
