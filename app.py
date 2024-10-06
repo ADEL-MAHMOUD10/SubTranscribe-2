@@ -196,14 +196,15 @@ def convert_video_to_audio(video_path):
 
 def transcribe_from_link(link):
     """Transcribe audio from a provided link."""
+    url = 'Cookies.txt'
     ydl_opts = {
         'format': 'best',  # Select the best audio format
         'quiet': True,                # Suppress output messages
         'no_warnings': True,          # Suppress warnings
         'extract_audio': True,        # Extract audio from the video
         'skip_download': True,    # Skip downloading the actual file
+        'cookiefile': f'{url}'
     }
-    
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(link)  # Extract information from the provided link
         audio_url = info.get('url', None)  # Get the audio URL
