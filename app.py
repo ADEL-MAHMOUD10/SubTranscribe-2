@@ -6,6 +6,7 @@ import moviepy.editor as mp
 import pymongo
 import ffmpeg
 import gridfs
+import yt_dlp
 from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file
 from werkzeug.utils import secure_filename
 from datetime import datetime
@@ -195,38 +196,48 @@ def convert_video_to_audio(video_path):
 
 def transcribe_from_link(link):
     """Transcribe audio from a provided link."""
+    ydl_opts = {
+        'format': 'best',  # Select the best audio format
+        'quiet': True,                # Suppress output messages
+        'no_warnings': True,          # Suppress warnings
+        'extract_audio': True,        # Extract audio from the video
+        'skip_download': True,    # Skip downloading the actual file
+    }
+    
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(link)  # Extract information from the provided link
+        audio_url = info.get('url', None)  # Get the audio URL
+
+    # Send the audio URL to AssemblyAI for transcription
+    print(audio_url)
     base_url = "https://api.assemblyai.com/v2"
-    headers = {"authorization": "2ba819026c704d648dced28f3f52406f"}
+    headers = {"authorization": "2ba819026c704d648dced28f3f52406f"}  # Set authorization header
+    data = {"audio_url": audio_url}  # Prepare data with audio URL
+    response = requests.post(base_url + "/transcript", json=data, headers=headers)  # Make POST request to create a transcript
 
-    # Create a payload with the URL
-    data = {"audio_url": link}
-    response = requests.post(base_url + "/transcript", json=data, headers=headers)
+    if response.status_code != 200:  # Check if the request was successful
+        return f"Error creating transcript: {response.json()}"  # Return error message if not successful
+
+    transcript_id = response.json()['id']  # Get the transcript ID from the response
+    progress["status"] = 40  # Update progress status to 40%
+    progress["message"] = "Processing"  # Set progress message to "Processing"
     
-    progress["status"] = 40
-    progress["message"] = "Processing"
-    if response.status_code != 200:
-        return f"Error creating transcript: {response.json()}"
-    
-    transcript_id = response.json()['id']
-
-
-    # Poll for the transcript status
+    # Polling to check the status of the transcript
     while True:
-        transcript_response = requests.get(f"{base_url}/transcript/{transcript_id}", headers=headers)
-        if transcript_response.status_code == 200:
-            transcript_data = transcript_response.json()
-            progress["status"] = 80
-            if transcript_data['status'] == 'completed':
-                progress["status"] = 100
-                progress["message"] = "Processing Complete"
-                # Now, instead of returning the text, redirect to the download page
-                Update_progress_db(transcript_id, status=100, message="completed", Section="Download page",link=link)
-                return redirect(url_for('download_subtitle', transcript_id=transcript_id))
-            elif transcript_data['status'] == 'error':
-                Update_progress_db(transcript_id, status=0, message="Invalid Link", Section="Link",link=link)
-                return render_template("error.html")
+        transcript_response = requests.get(f"{base_url}/transcript/{transcript_id}", headers=headers)  # Get the status of the transcript
+        if transcript_response.status_code == 200:  # Check if the request was successful
+            transcript_data = transcript_response.json()  # Parse the JSON response
+            if transcript_data['status'] == 'completed':  # If the transcription is completed
+                progress["status"] = 100  # Update progress status to 100%
+                progress["message"] = "Processing Complete"  # Set progress message to "Processing Complete"
+                Update_progress_db(transcript_id, status=100, message="completed", Section="Download page", link=audio_url)  # Update progress in the database
+                return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download page
+            elif transcript_data['status'] == 'error':  # If there was an error during transcription
+                Update_progress_db(transcript_id, status=0, message="Invalid Link", Section="Link", link=audio_url)  # Update database with error
+                return render_template("error.html")  # Render error page
         else:
-            return render_template("error.html")
+            return render_template("error.html")  # Render error page if status request failed
+
         
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
