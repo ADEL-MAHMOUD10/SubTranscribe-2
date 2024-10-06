@@ -196,7 +196,7 @@ def convert_video_to_audio(video_path):
 
 def transcribe_from_link(link):
     """Transcribe audio from a provided link."""
-    url = 'Cookies.txt'
+    url = f'https://github.com/ADEL-MAHMOUD10/SubTranscribe-2/blob/3cccd56b82c877fbbe48312ca02c1dd025e83eb3/Cookies.txt'
     ydl_opts = {
         'format': 'best',  # Select the best audio format
         'quiet': True,                # Suppress output messages
