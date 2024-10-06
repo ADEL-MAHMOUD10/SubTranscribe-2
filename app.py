@@ -2,7 +2,6 @@ import os
 import requests
 import time
 import warnings
-import moviepy.editor as mp
 import pymongo
 import ffmpeg
 import gridfs
