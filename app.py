@@ -197,7 +197,7 @@ def convert_video_to_audio(video_path):
 def transcribe_from_link(link):
     """Transcribe audio from a provided link."""
     ydl_opts = {
-        'format': 'best',  # Select the best audio format
+        'format': 'bestaudio/best',  # Select the best audio format
         'quiet': True,                # Suppress output messages
         'no_warnings': True,          # Suppress warnings
         'extract_audio': True,        # Extract audio from the video
