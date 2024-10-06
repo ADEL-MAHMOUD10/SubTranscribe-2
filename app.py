@@ -133,7 +133,8 @@ def upload_or_link():
             progress["status"] = 20  # Update status for link processing
             progress["message"] = "Initializing"
             transcript_id = transcribe_from_link(link)  # Transcribe from the provided link
-            return redirect(url_for('download_subtitle', transcript_id=transcript_id))  
+            return transcript_id  
+
 
         file = request.files.get('file')  # Get the uploaded file
         if file and allowed_file(file.filename):
