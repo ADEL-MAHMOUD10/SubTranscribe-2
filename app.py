@@ -267,23 +267,10 @@ def serve_file(filename):
     file_path = os.path.join(os.getcwd(), filename)  # Use a full path for the file
 
     if os.path.exists(file_path):  # Check if the file exists
-        try:
-            response = send_file(file_path, as_attachment=True)  # Send the file as an attachment
-            
-            try:
-                os.remove(file_path)  # Remove the file after sending
-            except PermissionError:
-                time.sleep(1)  # Wait a moment if there is a permission error
-            
-            return response  # Return the file response
-        except Exception:
-            return render_template("error.html")  # Render error page if sending fails
-        except FileNotFoundError:
-            return render_template("error.html")  # Render error page if file not found
-        except TypeError:
-            return render_template("error.html")  # Render error page on type error
-    
+        response = send_file(file_path, as_attachment=True)  # Send the file as an attachment
+
+    return response  # Return the file response
+
 # Main entry point
 if __name__ == "__main__":
     app.run(host="0.0.0.0",debug=True)
-
