@@ -41,11 +41,16 @@ updateProgress();
 
 // Display selected file name dynamically
 function showFileName() {
-    const fileInput = document.getElementById('file');
-    const fileNameDisplay = document.getElementById('fileName');
-    const selectedFile = fileInput.files[0];
-    fileNameDisplay.textContent = selectedFile ? "Selected file: " + selectedFile.name : '';
-    fileNameDisplay.style.display = 'block'; // Show the file name display
+    const fileInput = document.getElementById("file");
+    const fileName = document.getElementById("fileName");
+    const uploadedSize = document.getElementById("uploadedSize");
+    if (fileInput.files.length > 0) {
+      const file = fileInput.files[0];
+      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2); // حجم الملف بالميجا
+      fileName.style.display = 'block';
+      fileName.innerText = `File Selected: ${file.name} (${fileSizeMB} MB)`;
+      uploadedSize.innerText = `Uploaded: 0MB / ${fileSizeMB}MB`; // عرض حجم الرفع 0
+    }
 }
 
 // document.addEventListener('DOMContentLoaded', function() {
