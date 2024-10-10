@@ -76,7 +76,10 @@ body, html {
     max-width: 90%;
     text-align: center; 
 }
-
+.modal-content ul {
+    line-height: 30px;
+    text-align: start;
+}
 .modal-content h2 {
     margin-top: 18px;
     color: var(--primary-color);
