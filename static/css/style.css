@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap');
 
 :root {
     --primary-color: #1877F2;
@@ -29,7 +30,7 @@ body, html {
     font-weight: 600 !important;
 }
 .transcription-header {
-    font-family: 'Roboto', sans-serif;
+    font-family: "Archivo Black", serif !important;
     font-size: 2rem; 
     font-weight: bold; 
     color: var(--primary-color) !important;
