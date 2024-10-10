@@ -48,22 +48,22 @@ function showFileName() {
     fileNameDisplay.style.display = 'block'; // Show the file name display
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    const messageModal = document.getElementById('messageModal');
-    const closeButton = document.querySelector('.close-button');
+// document.addEventListener('DOMContentLoaded', function() {
+//     const messageModal = document.getElementById('messageModal');
+//     const closeButton = document.querySelector('.close-button');
 
-    messageModal.style.display = 'block';
+//     messageModal.style.display = 'block';
 
-    closeButton.addEventListener('click', function() {
-        messageModal.style.display = 'none';
-    });
+//     closeButton.addEventListener('click', function() {
+//         messageModal.style.display = 'none';
+//     });
 
-    window.addEventListener('click', function(event) {
-        if (event.target === messageModal) {
-            messageModal.style.display = 'none';
-        }
-    });
-});
+//     window.addEventListener('click', function(event) {
+//         if (event.target === messageModal) {
+//             messageModal.style.display = 'none';
+//         }
+//     });
+// });
 
 function showWarningMessage() {
     const linkInput = document.getElementById('link').value;
