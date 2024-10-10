@@ -138,8 +138,7 @@ def upload_or_link():
 
         file = request.files.get('file')  # Get the uploaded file
         if file and allowed_file(file.filename):
-            time.sleep(1)  # Pause for a moment
-
+            
             progress["status"] = 10  # Update status
             filename = secure_filename(file.filename)  # Secure the filename
             file_path = f'{filename}' 
@@ -274,3 +273,4 @@ def serve_file(filename):
 # Main entry point
 if __name__ == "__main__":
     app.run(host="0.0.0.0",debug=True)
+
