@@ -46,10 +46,10 @@ function showFileName() {
     const uploadedSize = document.getElementById("uploadedSize");
     if (fileInput.files.length > 0) {
       const file = fileInput.files[0];
-      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2); // حجم الملف بالميجا
+      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);  
       fileName.style.display = 'block';
       fileName.innerText = `File Selected: ${file.name} (${fileSizeMB} MB)`;
-      uploadedSize.innerText = `Uploaded: 0MB / ${fileSizeMB}MB`; // عرض حجم الرفع 0
+      uploadedSize.innerText = `Uploaded: 0MB / ${fileSizeMB}MB`; 
     }
 }
 
