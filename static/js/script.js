@@ -89,7 +89,7 @@ function uploadFile() {
         }
     };
 
-    xhr.open('POST', '/', true);  // Replace '/' with the actual upload URL
+    xhr.open('POST', '/upload', true);  // Replace '/' with the actual upload URL
     xhr.send(formData);  // Send the file data
 }
 
