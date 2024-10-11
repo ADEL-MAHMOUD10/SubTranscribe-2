@@ -172,7 +172,14 @@ def upload_or_link():
                 
                 # Delete the audio file from GridFS after redirecting
                 delete_audio_from_gridfs(audio_id)  # Call the delete function
-                return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download subtitle
+                if audio_id:
+                    time.sleep(10)
+                    if transcript_id:
+                        Update_progress_db(transcript_id, status=100, message="completed", Section="Download page", file_name=filename)
+                        return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download subtitle
+                    else:
+                        Update_progress_db(transcript_id, status=0, message="Transcription failed", Section="Error Page")
+                        return render_template("error.html", error_message="Transcription failed. Please try again.")
             except Exception as e:
                 progress["status"] = 0  # Reset status on error
                 progress["message"] = "Error: " + str(e)  # Update message with error
