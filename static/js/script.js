@@ -1,22 +1,33 @@
-// Update progress every 10 seconds with proper error handling.
 function updateProgress() {
-    fetch('/progress')  // Call the /progress endpoint
-        .then(response => response.json())
+    fetch('/progress')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
         .then(data => {
             const progressBar = document.getElementById('progressBar');
             const progressMessage = document.getElementById('progressMessage');
             const progressStatus = data.status || 0;
 
-            progressBar.style.width = progressStatus + '%';  // Update the width of the progress bar
-            progressBar.textContent = progressStatus.toFixed(2) + '%';  // Update the text inside the progress bar
-            
-            // Update the progress message.
+            progressBar.style.width = progressStatus + '%';
+            progressBar.textContent = progressStatus.toFixed(2) + '%';
             progressMessage.textContent = data.message;
+        })
+        .catch(error => {
+            console.error('Error fetching progress:', error);
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = '0%';
+            progressBar.textContent = 'Error';
+            const progressMessage = document.getElementById('progressMessage');
+            progressMessage.textContent = 'Failed to retrieve progress.';
         });
 }
 
 // Poll the progress every second
-setInterval(updateProgress, 4000);
+setInterval(updateProgress, 2000);
+
 
 
 // Display selected file name dynamically
