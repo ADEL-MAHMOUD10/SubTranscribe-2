@@ -62,7 +62,7 @@ def upload_audio_to_gridfs(file_path):
 
 def Create_subtitle_to_db(subtitle_path):
     """Create subtitle file to MongoDB."""
-
+    global progress
     with open(subtitle_path, "rb") as subtitle_file:
         # Store the file in GridFS and return the file ID
         subtitle_id = fs.put(subtitle_file, filename=os.path.basename(subtitle_path), content_type='SRT/VTT')
@@ -71,7 +71,7 @@ def Create_subtitle_to_db(subtitle_path):
 
 def upload_audio_to_assemblyai(audio_path):
     """Upload audio file to AssemblyAI for transcription with progress tracking."""
-
+    global progress
 
     headers = {"authorization": "2ba819026c704d648dced28f3f52406f"}
     base_url = "https://api.assemblyai.com/v2"
@@ -116,18 +116,6 @@ def upload_audio_to_assemblyai(audio_path):
     
     return transcript_id # Return the transcript ID
     
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    """Receive webhook notifications from AssemblyAI."""
-    data = request.json
-
-    if 'id' in data:
-        transcript_id = data['id']  # Get the transcript ID from the webhook data
-        print(f"Transcription {transcript_id} completed.")
-        return '', 200
-    else:
-        print("No transcript ID found in the webhook data.")
-        return '', 400
 
 @app.route('/progress')
 def progress_status():
@@ -147,8 +135,7 @@ def delete_audio_from_gridfs(audio_id):
 @app.route('/', methods=['GET', 'POST'])
 def upload_or_link():
     """Handle file uploads or links for transcription."""
-
-
+    global progress
     if request.method == 'POST':
         progress["status"] = 10
         progress["message"] = "Uploading"
@@ -293,4 +280,3 @@ def serve_file(filename):
 # Main entry point
 if __name__ == "__main__":
     app.run(host="0.0.0.0",debug=True)
-
