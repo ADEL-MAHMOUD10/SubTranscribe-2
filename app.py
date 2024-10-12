@@ -24,7 +24,7 @@ db = cluster["Datedb"]  # Specify the database name
 fs = gridfs.GridFS(db)  # Create a GridFS instance for file storage
 
 # Initial progress status
-progress = {"status": 0, "message": "Initializing"}
+progress = {"status": 10, "message": "Uploading"}
 
 def Update_progress_db(transcript_id, status, message, Section, file_name=None, link=None):
     """Update the progress status in the MongoDB database."""
@@ -144,20 +144,17 @@ def delete_audio_from_gridfs(audio_id):
 @app.route('/', methods=['GET', 'POST'])
 def upload_or_link():
     """Handle file uploads or links for transcription."""
-    global progress
-    progress = {"status": 0, "message": "Initializing"}  # Reset progress
+
 
     if request.method == 'POST':
         link = request.form.get('link')  # Get the link from the form
         if link:
-            progress["message"] = "Initializing"
             transcript_id = transcribe_from_link(link)  # Transcribe from the provided link
             return transcript_id  
 
 
         file = request.files.get('file')  # Get the uploaded file
         if file and allowed_file(file.filename):
-            
             filename = secure_filename(file.filename)  # Secure the filename
             file_path = f'{filename}' 
             try:
@@ -244,6 +241,8 @@ def transcribe_from_link(link):
         transcript_response = requests.get(f"{base_url}/transcript/{transcript_id}", headers=headers)  # Get the status of the transcript
         if transcript_response.status_code == 200:  # Check if the request was successful
             transcript_data = transcript_response.json()  # Parse the JSON response
+            progress["status"] = 100  # Update progress status to 100%
+            progress["message"] = "Processing Complete, Please wait a second."  # Set progress message to "Processing Complete"
             if transcript_data['status'] == 'completed':  # If the transcription is completed
                 Update_progress_db(transcript_id, status=100, message="completed", Section="Download page", link=audio_url)  # Update progress in the database
                 return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download page
