@@ -73,17 +73,17 @@ def upload_audio_to_assemblyai(audio_path, progress):
     headers = {"authorization": "2ba819026c704d648dced28f3f52406f"}
     base_url = "https://api.assemblyai.com/v2"
     
-    # Get the file size
-    total_size = os.path.getsize(audio_path)
+    total_size = os.path.getsize(audio_path)  # Get the file size
 
+    transcript_id = "some_unique_transcript_id"  # يجب أن تكون قادرًا على توليد ID لكل عملية تحميل
+    
     # Use tqdm to create a progress bar
     with open(audio_path, "rb") as f:
         # Initialize tqdm progress bar
         with tqdm(total=total_size, unit='B', unit_scale=True, desc='Uploading', ncols=100) as bar:
-            # Create a generator that yields chunks of the file
             def upload_chunks():
                 while True:
-                    chunk = f.read(8192)  # Read 8KB chunks
+                    chunk = f.read(409600)  # Read 8KB chunks
                     if not chunk:
                         break
                     yield chunk
@@ -91,9 +91,11 @@ def upload_audio_to_assemblyai(audio_path, progress):
                     
                     # Update the progress dictionary for frontend
                     prog_status = (bar.n / total_size) * 100
-                    prog_status_test = prog_status
-                    progress["status"] = prog_status_test
-                    progress["message"] =  f"Uploading... {progress['status']:.2f}%"
+                    progress["status"] = prog_status
+                    progress["message"] = f"Uploading... {progress['status']:.2f}%"
+                    
+                    # Update the progress in MongoDB
+                    Update_progress_db(transcript_id, progress["status"], progress["message"], "Uploading", file_name=audio_path)
 
             # Upload the audio file to AssemblyAI in chunks
             response = requests.post(base_url + "/upload", headers=headers, data=upload_chunks())
@@ -103,15 +105,14 @@ def upload_audio_to_assemblyai(audio_path, progress):
     # Prepare the request data with the webhook URL
     data = {
         "audio_url": upload_url,
-        "webhook_url": "https://subtranscribe.koyeb.app/"  # Make sure this is correct
+        "webhook_url": "https://subtranscribe.koyeb.app/"  # تأكد أن هذا الرابط صحيح
     }
     
-    # Request transcription
     response = requests.post(base_url + "/transcript", json=data, headers=headers)
     transcript_id = response.json().get('id')  # Get the transcript ID
     
     return transcript_id  # Return the transcript ID
-    
+
 
 @app.route('/progress')
 def progress_status():
@@ -275,4 +276,3 @@ def serve_file(filename):
 # Main entry point
 if __name__ == "__main__":
     app.run(host="0.0.0.0")
-
