@@ -33,20 +33,20 @@
         </div>
       </div>
     </nav>
-    
+
     <div id="messageModal" class="modal">
       <div class="modal-content">
         <span class="close-button">✖</span>
         <h2>Important Notice</h2>
         <strong>
-          <p>We would like to provide you with some important updates regarding our link bar features:</p>
+          <p>We would like to provide you with some important updates regarding our file upload features:</p>
     
         </strong>
         <ul>
             <li>You can now upload video files directly to Google Drive and retrieve their links for sharing.</li>
-            <li>For longer videos, we recommend converting them to audio format before uploading. This will ensure a faster experience.</li>
+            <li>For longer videos, we recommend converting them to audio format before uploading. This will ensure a faster and smoother experience.</li>
             <li>Please make sure your uploaded files are set to public access to allow us to read them.</li>
-            <li>Please note that the progress bar is currently not functioning as expected, and some links may not work.</li>
+            <li>Please note that the progress bar is currently not functioning as expected, and some links may not work. We are actively working to resolve these issues.</li>
         </ul>
           We are actively working to resolve these issues soon!
       </div>
@@ -56,12 +56,17 @@
     <div class="container mt-5 fade-in">
       <h1 class="transcription-header">Unlimited audio & video transcription</h1>
 
-        
-        <div class="nav nav-tabs justify-content-center mt-4" id="nav-tab" role="tablist">
-          <a class="nav-item nav-link active" id="nav-audio-tab" data-toggle="tab" href="#nav-audio" role="tab" aria-controls="nav-audio" aria-selected="true"><i class="fa-solid fa-square-caret-up"></i> Upload File</a>
-          <a class="nav-item nav-link" id="nav-link-tab" data-toggle="tab" href="#nav-link" role="tab" aria-controls="nav-link" aria-selected="false"><i class="fa-solid fa-square-up-right"></i> Link</a>
+
+        <div class="tab-bar">
+          <div class="nav justify-content-center mt-4"  id="nav-tab" role="tablist">
+            <button class="tab-button active"  id="nav-audio-tab" data-toggle="tab" href="#nav-audio" role="tab" aria-controls="nav-audio" aria-selected="false">
+              <i class="fa-solid fa-square-caret-up"></i> Upload File
+            </button>
+            <button class="tab-button" id="nav-link-tab" data-toggle="tab" href="#nav-link" role="tab" aria-controls="nav-link" aria-selected="false">
+              <i class="fa-solid fa-square-up-right"></i> Link
+            </button>
+          </div>
         </div>
-        
         
         <div class="tab-content">
           <div class="tab-pane fade show active" id="nav-audio" role="tabpanel" aria-labelledby="nav-audio-tab">
@@ -95,8 +100,7 @@
           <div class="progress mt-4">
             <div id="progressBar" class="progress-bar progress-bar-striped" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
           </div>
-            
-          <div id="uploadedSize"></div>
+          
           <div id="progressMessage" class="mt-3">Initializing...</div>
         </div>
       </div>
