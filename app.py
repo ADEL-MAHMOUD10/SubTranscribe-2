@@ -75,7 +75,7 @@ def upload_audio_to_assemblyai(audio_path, progress):
     
     total_size = os.path.getsize(audio_path)  # Get the file size
 
-    transcript_id = "some_unique_transcript_id"  # يجب أن تكون قادرًا على توليد ID لكل عملية تحميل
+    transcript_id = "_id"  
     
     # Use tqdm to create a progress bar
     with open(audio_path, "rb") as f:
@@ -105,7 +105,7 @@ def upload_audio_to_assemblyai(audio_path, progress):
     # Prepare the request data with the webhook URL
     data = {
         "audio_url": upload_url,
-        "webhook_url": "https://subtranscribe.koyeb.app/"  # تأكد أن هذا الرابط صحيح
+        "webhook_url": "https://subtranscribe.koyeb.app/"   
     }
     
     response = requests.post(base_url + "/transcript", json=data, headers=headers)
