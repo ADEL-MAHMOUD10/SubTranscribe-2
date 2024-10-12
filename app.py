@@ -75,8 +75,7 @@ def upload_audio_to_assemblyai(audio_path):
     
     # Get the file size
     total_size = os.path.getsize(audio_path)
-    progress["message"] = "Uploading"  # Update progress message
-    progress["status"] = 10  # Update status after starting upload
+
 
     # Use tqdm to create a progress bar
     with open(audio_path, "rb") as f:
@@ -150,9 +149,7 @@ def upload_or_link():
 
     if request.method == 'POST':
         link = request.form.get('link')  # Get the link from the form
-        progress["status"] = 5  # Update status
         if link:
-            progress["status"] = 8  # Update status for link processing
             progress["message"] = "Initializing"
             transcript_id = transcribe_from_link(link)  # Transcribe from the provided link
             return transcript_id  
@@ -161,7 +158,6 @@ def upload_or_link():
         file = request.files.get('file')  # Get the uploaded file
         if file and allowed_file(file.filename):
             
-            progress["status"] = 10  # Update status
             filename = secure_filename(file.filename)  # Secure the filename
             file_path = f'{filename}' 
             try:
@@ -198,8 +194,6 @@ def upload_or_link():
                         Update_progress_db(transcript_id, status=0, message="Transcription failed", Section="Error Page")
                         return render_template("error.html", error_message="Transcription failed. Please try again.")
             except Exception as e:
-                progress["status"] = 0  # Reset status on error
-                progress["message"] = "Error: " + str(e)  # Update message with error
                 return render_template("error.html")  # Render error page
         else:
             return render_template('error.html')
@@ -250,8 +244,6 @@ def transcribe_from_link(link):
         transcript_response = requests.get(f"{base_url}/transcript/{transcript_id}", headers=headers)  # Get the status of the transcript
         if transcript_response.status_code == 200:  # Check if the request was successful
             transcript_data = transcript_response.json()  # Parse the JSON response
-            progress["status"] = 100  # Update progress status to 100%
-            progress["message"] = "Processing Complete, Please wait a second."  # Set progress message to "Processing Complete"
             if transcript_data['status'] == 'completed':  # If the transcription is completed
                 Update_progress_db(transcript_id, status=100, message="completed", Section="Download page", link=audio_url)  # Update progress in the database
                 return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download page
