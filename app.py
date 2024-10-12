@@ -6,7 +6,6 @@ import pymongo
 import ffmpeg
 import gridfs
 import yt_dlp
-import asyncio
 from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file
 from werkzeug.utils import secure_filename
 from datetime import datetime
@@ -89,11 +88,11 @@ def upload_audio_to_assemblyai(audio_path, progress):
                         break
                     yield chunk
                     bar.update(len(chunk))  # Update progress bar
+                    
                     # Update the progress dictionary for frontend
                     prog_status = (bar.n / total_size) * 100
                     progress["status"] = prog_status
-                    prog_message = f"Uploading... {progress['status']:.2f}%"
-                    progress["message"] = prog_message
+                    progress["message"] =  f"Uploading... {progress['status']:.2f}%"
 
             # Upload the audio file to AssemblyAI in chunks
             response = requests.post(base_url + "/upload", headers=headers, data=upload_chunks())
@@ -114,7 +113,7 @@ def upload_audio_to_assemblyai(audio_path, progress):
     
 
 @app.route('/progress')
-async def progress_status():
+def progress_status():
     """Return the current progress status as JSON."""
     return jsonify(progress)
 
