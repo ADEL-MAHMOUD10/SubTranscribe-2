@@ -89,8 +89,10 @@ def upload_audio_to_assemblyai(audio_path, progress):
                     yield chunk
                     bar.update(len(chunk))  # Update progress bar
                     # Update the progress dictionary for frontend
-                    progress["status"] = (bar.n / total_size) * 100
-                    progress["message"] = f"Uploading... {progress['status']:.2f}%"
+                    prog_status = (bar.n / total_size) * 100
+                    progress["status"] = prog_status
+                    prog_message = f"Uploading... {progress['status']:.2f}%"
+                    progress["message"] = prog_message
                     if progress["status"] == 100:
                         progress["message"] = 'Please wait for a few seconds'
                         break
