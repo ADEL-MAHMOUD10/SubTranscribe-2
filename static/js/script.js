@@ -1,42 +1,22 @@
 // Update progress every 10 seconds with proper error handling.
 function updateProgress() {
-    const timeout = 8000; // Set a timeout for fetch requests.
+    fetch('/progress')  // Call the /progress endpoint
+        .then(response => response.json())
+        .then(data => {
+            const progressBar = document.getElementById('progressBar');
+            const progressMessage = document.getElementById('progressMessage');
+            const progressStatus = data.status || 0;
 
-    // Use Promise.race to implement a timeout for the fetch request.
-    Promise.race([
-        fetch('/progress').then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), timeout))
-    ])
-    .then(data => {
-        const progressBar = document.getElementById('progressBar');
-        const progressMessage = document.getElementById('progressMessage');
-        
-        // Update the progress bar.
-        progressBar.style.width = data.status + '%';
-        progressBar.setAttribute('aria-valuenow', data.status);
-        progressBar.textContent = data.status + '%';
-        
-        // Update the progress message.
-        progressMessage.textContent = data.message;
-
-        // Call the function again after 10 seconds to continue updating.
-        setTimeout(updateProgress, 10000);
-    })
-    .catch(error => {
-        console.error('Error fetching progress:', error);
-        
-        // Retry updating the progress after 10 seconds in case of an error.
-        setTimeout(updateProgress, 10000);
-    });
+            progressBar.style.width = progressStatus + '%';  // Update the width of the progress bar
+            progressBar.textContent = progressStatus.toFixed(2) + '%';  // Update the text inside the progress bar
+            
+            // Update the progress message.
+            progressMessage.textContent = data.message;
+        });
 }
 
-// Call the updateProgress function when the page loads.
-updateProgress();
+// Poll the progress every second
+setInterval(updateProgress, 4000);
 
 
 // Display selected file name dynamically
@@ -47,25 +27,11 @@ function showFileName() {
         const file = fileInput.files[0];
         const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);  
         fileName.style.display = 'block';
-        fileName.innerText = `File Selected: ${file.name} (${fileSizeMB} MB)`;
+        // استخدام innerHTML لإضافة span وتغيير لون حجم الملف
+        fileName.innerHTML = `File Selected: ${file.name} (<span style="color: #007bff;">${fileSizeMB} MB</span>)`;
     }
 }
-// document.addEventListener('DOMContentLoaded', function() {
-//     const messageModal = document.getElementById('messageModal');
-//     const closeButton = document.querySelector('.close-button');
 
-//     messageModal.style.display = 'block';
-
-//     closeButton.addEventListener('click', function() {
-//         messageModal.style.display = 'none';
-//     });
-
-//     window.addEventListener('click', function(event) {
-//         if (event.target === messageModal) {
-//             messageModal.style.display = 'none';
-//         }
-//     });
-// });
 
 function showWarningMessage() {
     const linkInput = document.getElementById('link').value;
@@ -91,4 +57,5 @@ window.onclick = function(event) {
         modal.style.display = 'none';
     }
 };
+
 
