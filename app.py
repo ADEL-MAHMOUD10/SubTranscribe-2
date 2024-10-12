@@ -6,6 +6,7 @@ import pymongo
 import ffmpeg
 import gridfs
 import yt_dlp
+import asyncio
 from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file
 from werkzeug.utils import secure_filename
 from datetime import datetime
@@ -28,7 +29,7 @@ fs = gridfs.GridFS(db)  # Create a GridFS instance for file storage
 # Initial progress status
 progress = {"status": 0, "message": "Preparing"}
 
-def Update_progress_db(transcript_id, status, message, Section, file_name=None, link=None):
+async def Update_progress_db(transcript_id, status, message, Section, file_name=None, link=None):
     """Update the progress status in the MongoDB database."""
     collection = db["Main"]  # Specify the collection name
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Get the current time
@@ -52,7 +53,7 @@ def about():
     """Render the about page."""
     return render_template('about.html')
 
-def upload_audio_to_gridfs(file_path):
+async def upload_audio_to_gridfs(file_path):
     """Upload audio file to MongoDB using GridFS."""
     with open(file_path, "rb") as f:
         # Store the file in GridFS and return the file ID
@@ -60,7 +61,7 @@ def upload_audio_to_gridfs(file_path):
 
     return audio_id
 
-def Create_subtitle_to_db(subtitle_path):
+async def Create_subtitle_to_db(subtitle_path):
     """Create subtitle file to MongoDB."""
     with open(subtitle_path, "rb") as subtitle_file:
         # Store the file in GridFS and return the file ID
@@ -68,7 +69,7 @@ def Create_subtitle_to_db(subtitle_path):
     return subtitle_id
     
 
-def upload_audio_to_assemblyai(audio_path, progress):
+async def upload_audio_to_assemblyai(audio_path, progress):
     """Upload audio file to AssemblyAI for transcription with progress tracking."""
     headers = {"authorization": "2ba819026c704d648dced28f3f52406f"}
     base_url = "https://api.assemblyai.com/v2"
@@ -81,7 +82,7 @@ def upload_audio_to_assemblyai(audio_path, progress):
         # Initialize tqdm progress bar
         with tqdm(total=total_size, unit='B', unit_scale=True, desc='Uploading', ncols=100) as bar:
             # Create a generator that yields chunks of the file
-            def upload_chunks():
+            async def upload_chunks():
                 while True:
                     chunk = f.read(8192)  # Read 8KB chunks
                     if not chunk:
@@ -116,7 +117,7 @@ def upload_audio_to_assemblyai(audio_path, progress):
     
 
 @app.route('/progress')
-def progress_status():
+async def progress_status():
     """Return the current progress status as JSON."""
     return jsonify(progress)
 
@@ -125,13 +126,13 @@ def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'.mp4', '.wmv', '.mov', '.mkv', '.h.264', '.mp3', '.wav'}
     return '.' in filename and os.path.splitext(filename)[1].lower() in ALLOWED_EXTENSIONS
 
-def delete_audio_from_gridfs(audio_id):
+async def delete_audio_from_gridfs(audio_id):
     """Delete audio file document from GridFS using audio ID."""
     fs.delete(audio_id)  # Delete the file from GridFS
     print(f"Audio file with ID {audio_id} deleted successfully.")
 
 @app.route('/', methods=['GET', 'POST'])
-def upload_or_link():
+async def upload_or_link():
     """Handle file uploads or links for transcription."""
     if request.method == 'POST':
         progress["status"] = 10
@@ -187,7 +188,7 @@ def upload_or_link():
     else:
         return render_template('index.html')  # Render the index page if GET request
     
-def convert_video_to_audio(video_path):
+async def convert_video_to_audio(video_path):
     """Convert video file to audio using ffmpeg."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     audio_file_path = f'audio_{timestamp}.mp3'
@@ -199,7 +200,7 @@ def convert_video_to_audio(video_path):
         print(f"Error converting video to audio: {e}")
         return None
 
-def transcribe_from_link(link):
+async def transcribe_from_link(link):
     """Transcribe audio from a provided link."""
     ydl_opts = {
         'format': 'bestaudio/best',  # Select the best audio format
