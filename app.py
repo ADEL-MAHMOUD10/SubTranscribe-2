@@ -271,6 +271,7 @@ def download_subtitle(transcript_id):
 @app.route('/serve/<filename>')
 def serve_file(filename):
     """Serve the subtitle file for download."""
+    time.sleep(5)
     file_path = os.path.join(os.getcwd(), filename)  # Use a full path for the file
 
     if os.path.exists(file_path):  # Check if the file exists
