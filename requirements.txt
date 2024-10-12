@@ -1,4 +1,5 @@
 Flask
+asyncio
 requests
 ffmpeg
 Werkzeug
