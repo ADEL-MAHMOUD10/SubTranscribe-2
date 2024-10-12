@@ -184,7 +184,8 @@ def upload_or_link():
                 progress["status"] = 0  # Reset status on error
                 progress["message"] = "Error: " + str(e)  # Update message with error
                 return render_template("error.html")  # Render error page
-
+        else:
+            return render_template('error.html')
     else:
         return render_template('index.html')  # Render the index page if GET request
     
