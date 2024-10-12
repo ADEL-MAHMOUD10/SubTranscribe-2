@@ -24,7 +24,7 @@ db = cluster["Datedb"]  # Specify the database name
 fs = gridfs.GridFS(db)  # Create a GridFS instance for file storage
 
 # Initial progress status
-progress = {"status": 10, "message": "Uploading"}
+progress = {"status": 0, "message": "Preparing"}
 
 def Update_progress_db(transcript_id, status, message, Section, file_name=None, link=None):
     """Update the progress status in the MongoDB database."""
@@ -60,6 +60,7 @@ def upload_audio_to_gridfs(file_path):
 
 def Create_subtitle_to_db(subtitle_path):
     """Create subtitle file to MongoDB."""
+
     with open(subtitle_path, "rb") as subtitle_file:
         # Store the file in GridFS and return the file ID
         subtitle_id = fs.put(subtitle_file, filename=os.path.basename(subtitle_path), content_type='SRT/VTT')
@@ -68,7 +69,7 @@ def Create_subtitle_to_db(subtitle_path):
 
 def upload_audio_to_assemblyai(audio_path):
     """Upload audio file to AssemblyAI for transcription with progress tracking."""
-    global progress
+
 
     headers = {"authorization": "2ba819026c704d648dced28f3f52406f"}
     base_url = "https://api.assemblyai.com/v2"
@@ -93,7 +94,7 @@ def upload_audio_to_assemblyai(audio_path):
                     progress["status"] = (bar.n / total_size) * 100
                     progress["message"] = f"Uploading... {progress['status']:.2f}%"
                     if progress["status"] == 100 :
-                        progress["message"] = 'Please wait a second.'
+                        progress["message"] = 'Please wait for a few seconds'
                         break
 
             # Upload the audio file to AssemblyAI in chunks
@@ -111,7 +112,7 @@ def upload_audio_to_assemblyai(audio_path):
     response = requests.post(base_url + "/transcript", json=data, headers=headers)
     transcript_id = response.json().get('id')  # Get the transcript ID
     
-    return transcript_id  # Return the transcript ID
+    return transcript_id # Return the transcript ID
     
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -147,11 +148,13 @@ def upload_or_link():
 
 
     if request.method == 'POST':
+        progress["status"] = 10
+        progress["message"] = "Uploading"
+        
         link = request.form.get('link')  # Get the link from the form
         if link:
             transcript_id = transcribe_from_link(link)  # Transcribe from the provided link
             return transcript_id  
-
 
         file = request.files.get('file')  # Get the uploaded file
         if file and allowed_file(file.filename):
