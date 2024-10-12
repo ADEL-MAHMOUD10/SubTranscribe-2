@@ -11,12 +11,14 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 from pymongo import MongoClient
 from tqdm import tqdm
+from flask_cors import CORS
 
 # Suppress specific warnings
 warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 # Create a Flask application instance
 app = Flask(__name__)
+CORS(app)
 
 # Set up MongoDB connection
 cluster = MongoClient("mongodb+srv://Adde:1234@cluster0.1xefj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
