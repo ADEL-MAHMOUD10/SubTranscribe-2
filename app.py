@@ -173,7 +173,7 @@ def upload_or_link():
                 # Delete the audio file from GridFS after redirecting
                 delete_audio_from_gridfs(audio_id)  # Call the delete function
                 if audio_id:
-                    time.sleep(8)
+                    time.sleep(9)
                     if transcript_id:
                         Update_progress_db(transcript_id, status=100, message="completed", Section="Download page", file_name=filename)
                         return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download subtitle
@@ -266,13 +266,13 @@ def download_subtitle(transcript_id):
             time.sleep(5)
             return redirect(url_for('serve_file', filename=subtitle_file))  # Redirect to serve the file
         else:
+            time.sleep(6)
             return render_template("error.html")  # Render error page if request fails
     return render_template('subtitle.html')  # Render the subtitle download page
 
 @app.route('/serve/<filename>')
 def serve_file(filename):
     """Serve the subtitle file for download."""
-    time.sleep(5)
     file_path = os.path.join(os.getcwd(), filename)  # Use a full path for the file
 
     if os.path.exists(file_path):  # Check if the file exists
