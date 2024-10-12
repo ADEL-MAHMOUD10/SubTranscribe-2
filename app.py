@@ -10,6 +10,7 @@ from flask import Flask, request, jsonify, render_template, redirect, url_for, s
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from pymongo import MongoClient
+from tqdm import tqdm
 
 # Suppress specific warnings
 warnings.filterwarnings("ignore", category=SyntaxWarning)
@@ -64,16 +65,40 @@ def Create_subtitle_to_db(subtitle_path):
         subtitle_id = fs.put(subtitle_file, filename=os.path.basename(subtitle_path), content_type='SRT/VTT')
     return subtitle_id
     
+
 def upload_audio_to_assemblyai(audio_path):
-    """Upload audio file to AssemblyAI for transcription."""
+    """Upload audio file to AssemblyAI for transcription with progress tracking."""
     global progress
 
     headers = {"authorization": "2ba819026c704d648dced28f3f52406f"}
     base_url = "https://api.assemblyai.com/v2"
     
+    # Get the file size
+    total_size = os.path.getsize(audio_path)
+    progress["message"] = "Uploading"  # Update progress message
+    progress["status"] = 10  # Update status after starting upload
+
+    # Use tqdm to create a progress bar
     with open(audio_path, "rb") as f:
-        # Upload the audio file to AssemblyAI
-        response = requests.post(base_url + "/upload", headers=headers, data=f)
+        # Initialize tqdm progress bar
+        with tqdm(total=total_size, unit='B', unit_scale=True, desc='Uploading', ncols=100) as bar:
+            # Create a generator that yields chunks of the file
+            def upload_chunks():
+                while True:
+                    chunk = f.read(8192)  # Read 8KB chunks
+                    if not chunk:
+                        break
+                    yield chunk
+                    bar.update(len(chunk))  # Update progress bar
+                    # Update the progress dictionary for frontend
+                    progress["status"] = (bar.n / total_size) * 100
+                    progress["message"] = f"Uploading... {progress['status']:.2f}%"
+                    if progress["status"] == 100 :
+                        progress["message"] = 'Please wait a second.'
+                        break
+
+            # Upload the audio file to AssemblyAI in chunks
+            response = requests.post(base_url + "/upload", headers=headers, data=upload_chunks())
 
     upload_url = response.json()["upload_url"]  # Get the upload URL
 
@@ -87,11 +112,8 @@ def upload_audio_to_assemblyai(audio_path):
     response = requests.post(base_url + "/transcript", json=data, headers=headers)
     transcript_id = response.json().get('id')  # Get the transcript ID
     
-    progress["message"] = "Uploading"  # Update progress message
-    progress["status"] = 15  # Update status after starting upload
-
     return transcript_id  # Return the transcript ID
-
+    
 @app.route('/webhook', methods=['POST'])
 def webhook():
     """Receive webhook notifications from AssemblyAI."""
@@ -128,9 +150,9 @@ def upload_or_link():
 
     if request.method == 'POST':
         link = request.form.get('link')  # Get the link from the form
-        progress["status"] = 10  # Update status
+        progress["status"] = 5  # Update status
         if link:
-            progress["status"] = 20  # Update status for link processing
+            progress["status"] = 8  # Update status for link processing
             progress["message"] = "Initializing"
             transcript_id = transcribe_from_link(link)  # Transcribe from the provided link
             return transcript_id  
@@ -149,15 +171,11 @@ def upload_or_link():
                 # Process video files
                 if file_extension in [".mp4", ".wmv", ".mov", ".mkv", ".h.264"]:
                     audio_file_path = convert_video_to_audio(file_path)  # Convert video to audio
-                    progress["status"] = 25  # Update status
-                    progress["message"] = "Converting to Audio file"  # Update message
                     os.remove(file_path)  # Remove the original video file
 
                 # Process audio files
                 elif file_extension in [".mp3", ".wav"]:
                     audio_file_path = file_path  # Use the uploaded audio file
-                    progress["status"] = 30  # Update status
-                    progress["message"] = "Uploading audio file"  # Update message
                 else:
                     os.remove(file_path)  # Remove the file if not allowed
                     Update_progress_db(transcript_id, status=0, message="Error file", Section="Upload Page")
@@ -166,14 +184,13 @@ def upload_or_link():
                 # Upload the audio file to GridFS
                 audio_id = upload_audio_to_gridfs(audio_file_path)
 
-                progress["status"] = 40  # Update status
                 transcript_id = upload_audio_to_assemblyai(audio_file_path)  # Upload audio to AssemblyAI
                 Update_progress_db(transcript_id, status=100, message="completed", Section="Download page", file_name=filename)
                 
                 # Delete the audio file from GridFS after redirecting
                 delete_audio_from_gridfs(audio_id)  # Call the delete function
                 if audio_id:
-                    time.sleep(7)
+                    time.sleep(10)
                     if transcript_id:
                         Update_progress_db(transcript_id, status=100, message="completed", Section="Download page", file_name=filename)
                         return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download subtitle
@@ -186,6 +203,7 @@ def upload_or_link():
                 return render_template("error.html")  # Render error page
         else:
             return render_template('error.html')
+
     else:
         return render_template('index.html')  # Render the index page if GET request
     
@@ -225,17 +243,16 @@ def transcribe_from_link(link):
         return f"Error creating transcript: {response.json()}"  # Return error message if not successful
 
     transcript_id = response.json()['id']  # Get the transcript ID from the response
-    progress["status"] = 40  # Update progress status to 40%
-    progress["message"] = "Processing"  # Set progress message to "Processing"
+
     
     # Polling to check the status of the transcript
     while True:
         transcript_response = requests.get(f"{base_url}/transcript/{transcript_id}", headers=headers)  # Get the status of the transcript
         if transcript_response.status_code == 200:  # Check if the request was successful
             transcript_data = transcript_response.json()  # Parse the JSON response
+            progress["status"] = 100  # Update progress status to 100%
+            progress["message"] = "Processing Complete, Please wait a second."  # Set progress message to "Processing Complete"
             if transcript_data['status'] == 'completed':  # If the transcription is completed
-                progress["status"] = 100  # Update progress status to 100%
-                progress["message"] = "Processing Complete"  # Set progress message to "Processing Complete"
                 Update_progress_db(transcript_id, status=100, message="completed", Section="Download page", link=audio_url)  # Update progress in the database
                 return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download page
             elif transcript_data['status'] == 'error':  # If there was an error during transcription
@@ -248,8 +265,7 @@ def transcribe_from_link(link):
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
     """Handle subtitle download based on the transcript ID."""
-    progress["message"] = "Processing Complete"  # Update progress message
-    progress["status"] = 100  # Update status
+
     if request.method == 'POST':
         file_format = request.form['format']  # Get the requested file format
         headers = {"authorization": "2ba819026c704d648dced28f3f52406f"}
@@ -263,10 +279,8 @@ def download_subtitle(transcript_id):
                 f.write(response.text)  # Write the subtitle text to the file
             
             subtitle_path = Create_subtitle_to_db(subtitle_file)
-            time.sleep(5)
             return redirect(url_for('serve_file', filename=subtitle_file))  # Redirect to serve the file
         else:
-            time.sleep(6)
             return render_template("error.html")  # Render error page if request fails
     return render_template('subtitle.html')  # Render the subtitle download page
 
