@@ -1,5 +1,4 @@
 Flask
-asyncio
 requests
 ffmpeg
 Werkzeug
@@ -13,4 +12,3 @@ ffmpeg-python
 yt-dlp
 tqdm
 flask-cors
-Flask-Async
