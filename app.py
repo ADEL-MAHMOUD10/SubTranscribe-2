@@ -91,7 +91,8 @@ def upload_audio_to_assemblyai(audio_path, progress):
                     
                     # Update the progress dictionary for frontend
                     prog_status = (bar.n / total_size) * 100
-                    progress["status"] = prog_status
+                    prog_status_test = prog_status
+                    progress["status"] = prog_status_test
                     progress["message"] =  f"Uploading... {progress['status']:.2f}%"
 
             # Upload the audio file to AssemblyAI in chunks
