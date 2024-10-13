@@ -11,14 +11,16 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 from pymongo import MongoClient
 from tqdm import tqdm
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
+
 
 # Suppress specific warnings
 warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 # Create a Flask application instance
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": ["http://localhost:5000", "https://subtranscribe.koyeb.app"]}})
+
 
 # Set up MongoDB connection
 cluster = MongoClient("mongodb+srv://Adde:1234@cluster0.1xefj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
@@ -68,7 +70,17 @@ def Create_subtitle_to_db(subtitle_path):
         # Store the file in GridFS and return the file ID
         subtitle_id = fs.put(subtitle_file, filename=os.path.basename(subtitle_path), content_type='SRT/VTT')
     return subtitle_id
-    
+
+def delete_audio_from_gridfs(audio_id):
+    """Delete audio file document from GridFS using audio ID."""
+    fs.delete(audio_id)  # Delete the file from GridFS
+    print(f"Audio file with ID {audio_id} deleted successfully.")
+
+def allowed_file(filename):
+    """Check if the uploaded file has an allowed extension."""
+    ALLOWED_EXTENSIONS = {'.mp4', '.wmv', '.mov', '.mkv', '.h.264', '.mp3', '.wav'}
+    return '.' in filename and os.path.splitext(filename)[1].lower() in ALLOWED_EXTENSIONS
+
 
 def upload_audio_to_assemblyai(audio_path, progress):
     """Upload audio file to AssemblyAI for transcription with progress tracking."""
@@ -97,7 +109,6 @@ def upload_audio_to_assemblyai(audio_path, progress):
                     
                     # Update the progress dictionary for frontend
                     prog_status = (bar.n / total_size) * 100
-                    time.sleep(2.5)
                     prog_message = f"Uploading... {prog_status:.2f}%"
                     if prog_status >= 100:
                         prog_message = "Please wait for a few seconds..."
@@ -123,20 +134,12 @@ def upload_audio_to_assemblyai(audio_path, progress):
 
 
 @app.route('/progress')
+@cross_origin()  # Allow CORS for this route
 def progress_status():
     """Return the current progress status as JSON."""
-    global prog_status,prog_message
+    global prog_status, prog_message
     return jsonify({"status": prog_status, "message": prog_message})
 
-def allowed_file(filename):
-    """Check if the uploaded file has an allowed extension."""
-    ALLOWED_EXTENSIONS = {'.mp4', '.wmv', '.mov', '.mkv', '.h.264', '.mp3', '.wav'}
-    return '.' in filename and os.path.splitext(filename)[1].lower() in ALLOWED_EXTENSIONS
-
-def delete_audio_from_gridfs(audio_id):
-    """Delete audio file document from GridFS using audio ID."""
-    fs.delete(audio_id)  # Delete the file from GridFS
-    print(f"Audio file with ID {audio_id} deleted successfully.")
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_or_link():
