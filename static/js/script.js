@@ -1,16 +1,19 @@
-setInterval(function() {
+function updateProgress() {
     fetch('/progress')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
         .then(data => {
-            const progressPercentage = data.status || 0;
+            const progressBar = document.getElementById('progressBar');
+            const progressMessage = document.getElementById('progressMessage');
+            const progressStatus = data.status || 0;
 
-            // Update the progress bar.
-            progressBar.style.width = `${progressPercentage}%`;
-            progressBar.setAttribute('aria-valuenow', progressPercentage);
-            progressBar.textContent = `${progressPercentage.toFixed(2)}%`;
-    
-            document.getElementById('progressBar').style.width = data.status + '%';
-            document.getElementById('progressMessage').innerText = data.message;
+            progressBar.style.width = progressStatus + '%';
+            progressBar.textContent = progressStatus.toFixed(2) + '%';
+            progressMessage.textContent = data.message;
 
             // Change color based on progress.
             if (progressPercentage === 100) {
@@ -20,8 +23,20 @@ setInterval(function() {
             } else if (progressPercentage < 100) {
                 progressBar.style.backgroundColor = ''; // Default color
             }
+        })
+        .catch(error => {
+            console.error('Error fetching progress:', error);
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = '0%';
+            progressBar.textContent = 'Error';
+            const progressMessage = document.getElementById('progressMessage');
+            progressMessage.textContent = 'Failed to retrieve progress.';
         });
-}, 1000);  // Poll every second
+}
+
+// Poll the progress every second
+setInterval(updateProgress, 2000);
+
 
 
 // Display selected file name dynamically
@@ -32,7 +47,8 @@ function showFileName() {
         const file = fileInput.files[0];
         const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);  
         fileName.style.display = 'block';
-        fileName.innerText = `File Selected: ${file.name} (${fileSizeMB} MB)`;
+        // استخدام innerHTML لإضافة span وتغيير لون حجم الملف
+        fileName.innerHTML = `File Selected: ${file.name} (<span style="color: #007bff;">${fileSizeMB} MB</span>)`;
     }
 }
 
