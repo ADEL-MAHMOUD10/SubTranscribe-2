@@ -11,6 +11,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-
+CMD ["gunicorn", "--workers=3", "--max-requests=100", "--max-requests-jitter=10", "--timeout=600", "app:app"]
 
 EXPOSE 8000
