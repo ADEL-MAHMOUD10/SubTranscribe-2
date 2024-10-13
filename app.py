@@ -134,7 +134,7 @@ def upload_audio_to_assemblyai(audio_path, progress):
 
 
 @app.route('/progress')
-@cross_origin()  # Allow CORS for this route
+@cross_origin(origins=["http://localhost:5000", "https://subtranscribe.koyeb.app"])  # Allow CORS for this route
 def progress_status():
     """Return the current progress status as JSON."""
     global prog_status, prog_message
