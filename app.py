@@ -101,7 +101,7 @@ def upload_audio_to_assemblyai(audio_path, progress):
             def upload_chunks():
                 global prog_status,prog_message
                 while True:
-                    chunk = f.read(1009600)  # Read 8KB chunks
+                    chunk = f.read(9600)  # Read 9KB chunks
                     if not chunk:
                         break
                     yield chunk
