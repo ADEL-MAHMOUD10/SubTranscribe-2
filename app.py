@@ -101,7 +101,7 @@ def upload_audio_to_assemblyai(audio_path, progress):
             def upload_chunks():
                 global prog_status,prog_message
                 while True:
-                    chunk = f.read(9600)  # Read 9KB chunks
+                    chunk = f.read(28000)  # Read 280KB chunks
                     if not chunk:
                         break
                     yield chunk
@@ -109,7 +109,7 @@ def upload_audio_to_assemblyai(audio_path, progress):
                     
                     # Update the progress dictionary for frontend
                     prog_status = (bar.n / total_size) * 100
-                    prog_message = f"Uploading... {prog_status:.2f}%"
+                    prog_message = f"processing... {prog_status:.2f}%"
                     if prog_status >= 100:
                         prog_message = "Please wait for a few seconds..."
                         break
