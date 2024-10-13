@@ -89,7 +89,7 @@ def upload_audio_to_assemblyai(audio_path, progress):
             def upload_chunks():
                 global prog_status,prog_message
                 while True:
-                    chunk = f.read(109600)  # Read 10KB chunks
+                    chunk = f.read(1009600)  # Read 8KB chunks
                     if not chunk:
                         break
                     yield chunk
@@ -97,12 +97,11 @@ def upload_audio_to_assemblyai(audio_path, progress):
                     
                     # Update the progress dictionary for frontend
                     prog_status = (bar.n / total_size) * 100
+                    time.sleep(2.5)
                     prog_message = f"Uploading... {prog_status:.2f}%"
-
                     if prog_status >= 100:
                         prog_message = "Please wait for a few seconds..."
                         break
-
                     # Update the progress in MongoDB
                     Update_progress_db(transcript_id, prog_status, prog_message, "Uploading", file_name=audio_path)
 
@@ -148,6 +147,8 @@ def upload_or_link():
         prog_message = "Starting"
         link = request.form.get('link')  # Get the link from the form
         if link:
+            prog_status = 50
+            prog_message = "processing"
             transcript_id = transcribe_from_link(link)  # Transcribe from the provided link
             return transcript_id  
 
@@ -174,7 +175,6 @@ def upload_or_link():
 
                 # Upload the audio file to GridFS
                 audio_id = upload_audio_to_gridfs(audio_file_path)
-
                 transcript_id = upload_audio_to_assemblyai(audio_file_path, progress)  # Pass progress to the function
                 Update_progress_db(transcript_id, status=100, message="completed", Section="Download page", file_name=filename)
                 
@@ -183,7 +183,7 @@ def upload_or_link():
                 if audio_id:
                     time.sleep(10)
                     if transcript_id:
-                        Update_progress_db(transcript_id, status=100, message="completed", Section="Download page", file_name=filename)
+                        Update_progress_db(transcript_id, status=prog_status, message="completed", Section="Download page", file_name=filename)
                         return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download subtitle
                     else:
                         Update_progress_db(transcript_id, status=0, message="Transcription failed", Section="Error Page")
@@ -210,6 +210,7 @@ def convert_video_to_audio(video_path):
 
 def transcribe_from_link(link):
     """Transcribe audio from a provided link."""
+    global prog_status,prog_message
     ydl_opts = {
         'format': 'bestaudio/best',  # Select the best audio format
         'quiet': True,                # Suppress output messages
@@ -223,6 +224,8 @@ def transcribe_from_link(link):
 
     # Send the audio URL to AssemblyAI for transcription
     print(audio_url)
+    prog_status = 60
+    prog_message = "processing"
     base_url = "https://api.assemblyai.com/v2"
     headers = {"authorization": "2ba819026c704d648dced28f3f52406f"}  # Set authorization header
     data = {"audio_url": audio_url}  # Prepare data with audio URL
@@ -238,12 +241,11 @@ def transcribe_from_link(link):
     while True:
         transcript_response = requests.get(f"{base_url}/transcript/{transcript_id}", headers=headers)  # Get the status of the transcript
         if transcript_response.status_code == 200:  # Check if the request was successful
+            prog_status = 100
+            prog_message = "Please wait for a few seconds..."
             transcript_data = transcript_response.json()  # Parse the JSON response
-            global prog_status,prog_message
-            prog_status = 100 
-            prog_message  = "completed"
             if transcript_data['status'] == 'completed':  # If the transcription is completed
-                Update_progress_db(transcript_id, status=prog_status, message=prog_message, Section="Download page", link=audio_url)  # Update progress in the database
+                Update_progress_db(transcript_id, status=prog_status, message="complated", Section="Download page", link=audio_url)  # Update progress in the database
                 return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download page
             elif transcript_data['status'] == 'error':  # If there was an error during transcription
                 Update_progress_db(transcript_id, status=0, message="Invalid Link", Section="Link", link=audio_url)  # Update database with error
