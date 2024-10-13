@@ -1,52 +1,28 @@
-function updateProgress() {
-    const timeout = 1000; // Set a timeout for fetch requests.
+setInterval(function() {
+    fetch('/progress')
+        .then(response => response.json())
+        .then(data => {
+            const progressPercentage = data.status || 0;
 
-    // Reset progress bar on page load
-    const progressBar = document.getElementById('progressBar');
-    const progressMessage = document.getElementById('progressMessage');
-    progressBar.style.width = '0%'; // Reset progress bar to 0
-    progressBar.setAttribute('aria-valuenow', 0);
-    // Use Promise.race to implement a timeout for the fetch request.
-    Promise.race([
-        fetch('/progress').then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
+            // Update the progress bar.
+            progressBar.style.width = `${progressPercentage}%`;
+            progressBar.setAttribute('aria-valuenow', progressPercentage);
+            progressBar.textContent = `${progressPercentage.toFixed(2)}%`;
+    
+            document.getElementById('progressBar').style.width = data.status + '%';
+            document.getElementById('progressMessage').innerText = data.message;
+
+            // Change color based on progress.
+            if (progressPercentage === 100) {
+                progressBar.style.backgroundColor = 'green'; // Success color
+                progressMessage.textContent = "Please wait for a few seconds...";
+                return; // Stop further updates
+            } else if (progressPercentage < 100) {
+                progressBar.style.backgroundColor = ''; // Default color
             }
-            return response.json();
-        }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), timeout))
-    ])
-    .then(data => {
-        const progressPercentage = data.status || 0;
+        });
+}, 1000);  // Poll every second
 
-        // Update the progress bar.
-        progressBar.style.width = `${progressPercentage}%`;
-        progressBar.setAttribute('aria-valuenow', progressPercentage);
-        progressBar.textContent = `${progressPercentage.toFixed(2)}%`;
-
-        // Change color based on progress.
-        if (progressPercentage === 100) {
-            progressBar.style.backgroundColor = 'green'; // Success color
-            progressMessage.textContent = "Please wait for a few seconds...";
-            return; // Stop further updates
-        } else if (progressPercentage < 100) {
-            progressBar.style.backgroundColor = ''; // Default color
-        }
-
-        // Update the progress message.
-        progressMessage.textContent = data.message;
-
-        setTimeout(updateProgress, 1000); // Schedule the next update.
-    })
-    .catch(error => {
-        console.error('Error fetching progress:', error);
-        
-        setTimeout(updateProgress, 1000); // Retry after a delay.
-    });
-}
-
-// Call the updateProgress function when the page loads.
-updateProgress();
 
 // Display selected file name dynamically
 function showFileName() {
