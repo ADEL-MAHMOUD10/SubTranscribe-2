@@ -18,7 +18,7 @@ warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 # Create a Flask application instance
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": ["http://localhost:5000", "https://subtranscribe.koyeb.app"]}})
+CORS(app)
 
 # Set up MongoDB connection
 cluster = MongoClient("mongodb+srv://Adde:1234@cluster0.1xefj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
@@ -74,8 +74,8 @@ def allowed_file(filename):
 @app.route('/', methods=['GET', 'POST'])
 def upload_or_link():
     """Handle file uploads or links for transcription."""
-    global prog_status,prog_message
-
+    global prog_status,prog_message,progress
+    progress = {"status": prog_status, "message": prog_message}
     if request.method == 'GET':
         prog_status = 0
         prog_message = "Preparing"
@@ -112,7 +112,7 @@ def upload_or_link():
                 # audio_id = upload_audio_to_gridfs(audio_file_path)
                 transcript_id = upload_audio_to_assemblyai(audio_file_path)  # Pass progress to the function
                 # Update_progress_db(transcript_id, status=100, message="completed", Section="Download page", file_name=filename)
-                
+                progress = {"status": prog_status, "message": prog_message}
                 return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download subtitle
                 # Delete the audio file from GridFS after redirecting
                 # delete_audio_from_gridfs(audio_id)  # Call the delete function
@@ -143,14 +143,9 @@ def convert_video_to_audio(video_path):
         print(f"Error converting video to audio: {e}")
         return None
 
-import requests
-import yt_dlp
-from tqdm import tqdm
-from flask import redirect, url_for, render_template
-
 def transcribe_from_link(link):
     """Transcribe audio from a provided link."""
-    global prog_status, prog_message
+    global prog_status, prog_message, progress
     ydl_opts = {
         'format': 'bestaudio/best',  # Select the best audio format
         'quiet': True,                # Suppress output messages
@@ -190,7 +185,7 @@ def transcribe_from_link(link):
 
             # Upload the audio file to AssemblyAI in chunks
             base_url = "https://api.assemblyai.com/v2"
-            headers = {"authorization": "2ba819026c704d648dced28f3f52406f"}  # Set authorization header
+            headers = {"authorization": "5154fd34783d40ba9b1b27867b43ebaa"}  # Set authorization header
             response = requests.post(base_url + "/upload", headers=headers, data=upload_chunks())
 
             # Check upload response
@@ -203,6 +198,7 @@ def transcribe_from_link(link):
     data = {"audio_url": audio_url}  # Prepare data with audio URL
     response = requests.post(base_url + "/transcript", json=data, headers=headers)  # Make POST request to create a transcript
 
+    progress = {"status": prog_status, "message": prog_message}
     if response.status_code != 200:  # Check if the request was successful
         return f"Error creating transcript: {response.json()}"  # Return error message if not successful
 
@@ -232,19 +228,20 @@ def transcribe_from_link(link):
 
 #     return audio_id
 
+
 def upload_audio_to_assemblyai(audio_path):
     """Upload audio file to AssemblyAI for transcription with progress tracking."""
-    global prog_status,prog_message
-    headers = {"authorization": "2ba819026c704d648dced28f3f52406f"}
+    global prog_status,prog_message,progress
+    headers = {"authorization": "5154fd34783d40ba9b1b27867b43ebaa"}
     base_url = "https://api.assemblyai.com/v2"
     
     total_size = os.path.getsize(audio_path)  # Get the file size
 
     prog_status = 1.3
     prog_message = "Uploading"
+    progress = {"status": prog_status, "message": prog_message}
     # Use tqdm to create a progress bar
     with open(audio_path, "rb") as f:
-        progress = {"status": prog_status, "message": prog_message}
 
         # Initialize tqdm progress bar
         with tqdm(total=total_size, unit='B', unit_scale=True, desc='Uploading', ncols=100) as bar:
@@ -284,12 +281,13 @@ def upload_audio_to_assemblyai(audio_path):
         elif transcription_result['status'] == 'error':
             raise RuntimeError(f"Transcription failed: {transcription_result['error']}")
 
-@app.route('/progress', methods=['GET', 'POST'])
 @cross_origin()  # Allow CORS for this route
+@app.route('/progress', methods=['GET'])
 def progress_status():
     """Return the current progress status as JSON."""
-    global prog_status, prog_message
-    return jsonify({"status": prog_status, "message": prog_message})
+    global prog_status, prog_message, progress
+    progress = {"status": prog_status, "message": prog_message}
+    return jsonify(progress)
        
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
@@ -297,7 +295,7 @@ def download_subtitle(transcript_id):
 
     if request.method == 'POST':
         file_format = request.form['format']  # Get the requested file format
-        headers = {"authorization": "2ba819026c704d648dced28f3f52406f"}
+        headers = {"authorization": "5154fd34783d40ba9b1b27867b43ebaa"}
         url = f"https://api.assemblyai.com/v2/transcript/{transcript_id}/{file_format}"
 
         response = requests.get(url, headers=headers)  # Request the subtitle file
