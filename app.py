@@ -56,14 +56,6 @@ def about():
     """Render the about page."""
     return render_template('about.html')
 
-def upload_audio_to_gridfs(file_path):
-    """Upload audio file to MongoDB using GridFS."""
-    with open(file_path, "rb") as f:
-        # Store the file in GridFS and return the file ID
-        audio_id = fs.put(f, filename=os.path.basename(file_path), content_type='audio/video')
-
-    return audio_id
-
 def Create_subtitle_to_db(subtitle_path):
     """Create subtitle file to MongoDB."""
     with open(subtitle_path, "rb") as subtitle_file:
@@ -80,66 +72,6 @@ def allowed_file(filename):
     """Check if the uploaded file has an allowed extension."""
     ALLOWED_EXTENSIONS = {'.mp4', '.wmv', '.mov', '.mkv', '.h.264', '.mp3', '.wav'}
     return '.' in filename and os.path.splitext(filename)[1].lower() in ALLOWED_EXTENSIONS
-
-
-def upload_audio_to_assemblyai(audio_path, progress):
-    """Upload audio file to AssemblyAI for transcription with progress tracking."""
-    global prog_status,prog_message
-    headers = {"authorization": "2ba819026c704d648dced28f3f52406f"}
-    base_url = "https://api.assemblyai.com/v2"
-    
-    total_size = os.path.getsize(audio_path)  # Get the file size
-
-    transcript_id = "_id"  
-    prog_status = 10 
-    prog_message = "Uploading"
-
-    # Use tqdm to create a progress bar
-    with open(audio_path, "rb") as f:
-        # Initialize tqdm progress bar
-        with tqdm(total=total_size, unit='B', unit_scale=True, desc='Uploading', ncols=100) as bar:
-            def upload_chunks():
-                global prog_status,prog_message
-                while True:
-                    chunk = f.read(28000)  # Read 280KB chunks
-                    if not chunk:
-                        break
-                    yield chunk
-                    bar.update(len(chunk))  # Update progress bar
-                    
-                    # Update the progress dictionary for frontend
-                    prog_status = (bar.n / total_size) * 100
-                    prog_message = f"processing... {prog_status:.2f}%"
-                    if prog_status >= 100:
-                        prog_message = "Please wait for a few seconds..."
-                        break
-                    # Update the progress in MongoDB
-                    Update_progress_db(transcript_id, prog_status, prog_message, "Uploading", file_name=audio_path)
-
-            # Upload the audio file to AssemblyAI in chunks
-            response = requests.post(base_url + "/upload", headers=headers, data=upload_chunks())
-
-    upload_url = response.json()["upload_url"]  # Get the upload URL
-
-    # Prepare the request data with the webhook URL
-    data = {
-        "audio_url": upload_url,
-        "webhook_url": "https://subtranscribe.koyeb.app/"   
-    }
-    
-    response = requests.post(base_url + "/transcript", json=data, headers=headers)
-    transcript_id = response.json().get('id')  # Get the transcript ID
-    progress = {"status": prog_status, "message": prog_message}
-    return transcript_id # Return the transcript ID
-
-
-@app.route('/progress')
-@cross_origin(origins=["http://localhost:5000", "https://subtranscribe.koyeb.app"])  # Allow CORS for this route
-def progress_status():
-    """Return the current progress status as JSON."""
-    global prog_status, prog_message
-    return jsonify({"status": prog_status, "message": prog_message})
-
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_or_link():
@@ -256,7 +188,71 @@ def transcribe_from_link(link):
         else:
             return render_template("error.html")  # Render error page if status request failed
 
-        
+def upload_audio_to_gridfs(file_path):
+    """Upload audio file to MongoDB using GridFS."""
+    with open(file_path, "rb") as f:
+        # Store the file in GridFS and return the file ID
+        audio_id = fs.put(f, filename=os.path.basename(file_path), content_type='audio/video')
+
+    return audio_id
+
+def upload_audio_to_assemblyai(audio_path, progress):
+    """Upload audio file to AssemblyAI for transcription with progress tracking."""
+    global prog_status,prog_message
+    headers = {"authorization": "2ba819026c704d648dced28f3f52406f"}
+    base_url = "https://api.assemblyai.com/v2"
+    
+    total_size = os.path.getsize(audio_path)  # Get the file size
+
+    transcript_id = "_id"  
+    prog_status = 10 
+    prog_message = "Uploading"
+
+    # Use tqdm to create a progress bar
+    with open(audio_path, "rb") as f:
+        # Initialize tqdm progress bar
+        with tqdm(total=total_size, unit='B', unit_scale=True, desc='Uploading', ncols=100) as bar:
+            def upload_chunks():
+                global prog_status,prog_message
+                while True:
+                    chunk = f.read(28000)  # Read 280KB chunks
+                    if not chunk:
+                        break
+                    yield chunk
+                    bar.update(len(chunk))  # Update progress bar
+                    
+                    # Update the progress dictionary for frontend
+                    prog_status = (bar.n / total_size) * 100
+                    prog_message = f"processing... {prog_status:.2f}%"
+                    if prog_status >= 100:
+                        prog_message = "Please wait for a few seconds..."
+                        break
+                    # Update the progress in MongoDB
+                    Update_progress_db(transcript_id, prog_status, prog_message, "Uploading", file_name=audio_path)
+
+            # Upload the audio file to AssemblyAI in chunks
+            response = requests.post(base_url + "/upload", headers=headers, data=upload_chunks())
+
+    upload_url = response.json()["upload_url"]  # Get the upload URL
+
+    # Prepare the request data with the webhook URL
+    data = {
+        "audio_url": upload_url,
+        "webhook_url": "https://subtranscribe.koyeb.app/"   
+    }
+    
+    response = requests.post(base_url + "/transcript", json=data, headers=headers)
+    transcript_id = response.json().get('id')  # Get the transcript ID
+    progress = {"status": prog_status, "message": prog_message}
+    return transcript_id # Return the transcript ID
+
+@app.route('/progress')
+@cross_origin()  # Allow CORS for this route
+def progress_status():
+    """Return the current progress status as JSON."""
+    global prog_status, prog_message
+    return jsonify({"status": prog_status, "message": prog_message})
+       
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
     """Handle subtitle download based on the transcript ID."""
