@@ -130,7 +130,7 @@ def upload_or_link():
 
     else:
         return render_template('index.html')  # Render the index page if GET request
-    
+
 def convert_video_to_audio(video_path):
     """Convert video file to audio using ffmpeg."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -160,6 +160,7 @@ def transcribe_from_link(link):
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        global prog_status, prog_message
         prog_status = 1.3
         info = ydl.extract_info(link)  # Extract information from the provided link
         audio_url = info.get('url', None)  # Get the audio URL
@@ -287,9 +288,8 @@ def upload_audio_to_assemblyai(audio_path):
 @cross_origin()  # Allow CORS for this route
 def progress_status():
     """Return the current progress status as JSON."""
-    global prog_status, prog_message , progress
-    progress = {"status": prog_status, "message": prog_message}
-    return jsonify(progress)
+    global prog_status, prog_message
+    return jsonify({"status": prog_status, "message": prog_message})
        
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
