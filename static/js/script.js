@@ -1,5 +1,5 @@
 function updateProgress() {
-    const timeout = 3000; // Set a timeout for fetch requests.
+    const timeout = 1000; // Set a timeout for fetch requests.
 
     // Use Promise.race to implement a timeout for the fetch request.
     Promise.race([
@@ -14,30 +14,36 @@ function updateProgress() {
     .then(data => {
         const progressBar = document.getElementById('progressBar');
         const progressMessage = document.getElementById('progressMessage');
-        const progressStatus = data.status || 0;
+        const progressPercentage = data.status || 0;
 
         // Update the progress bar.
-        progressBar.style.width = data.status + '%';
-        progressBar.setAttribute('aria-valuenow', data.status);
-        progressBar.textContent = data.status + '%';
-        progressBar.textContent = progressStatus.toFixed(2) + '%';
+        progressBar.style.width = `${progressPercentage}%`;
+        progressBar.setAttribute('aria-valuenow', progressPercentage);
+        progressBar.textContent = `${progressPercentage.toFixed(2)}%`;
+
+        // Change color based on progress.
+        if (progressPercentage === 100) {
+            progressBar.style.backgroundColor = 'green'; // Success color
+            progressMessage.textContent = "Processing complete!";
+            return; // Stop further updates
+        } else if (progressPercentage < 100) {
+            progressBar.style.backgroundColor = ''; // Default color
+        }
+
         // Update the progress message.
         progressMessage.textContent = data.message;
 
-        // Call the function again after 10 seconds to continue updating.
-        setTimeout(updateProgress, 2000);
+        setTimeout(updateProgress, 1000); // Schedule the next update.
     })
     .catch(error => {
         console.error('Error fetching progress:', error);
         
-        // Retry updating the progress after 10 seconds in case of an error.
-        setTimeout(updateProgress, 2000);
+        setTimeout(updateProgress, 1000); // Retry after a delay.
     });
 }
 
 // Call the updateProgress function when the page loads.
 updateProgress();
-
 
 // Display selected file name dynamically
 function showFileName() {
@@ -50,7 +56,6 @@ function showFileName() {
         fileName.innerText = `File Selected: ${file.name} (${fileSizeMB} MB)`;
     }
 }
-
 
 function showWarningMessage() {
     const linkInput = document.getElementById('link').value;
