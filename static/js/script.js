@@ -1,33 +1,42 @@
 function updateProgress() {
-    fetch('/progress')
-        .then(response => {
+    const timeout = 3000; // Set a timeout for fetch requests.
+
+    // Use Promise.race to implement a timeout for the fetch request.
+    Promise.race([
+        fetch('/progress').then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
             return response.json();
-        })
-        .then(data => {
-            const progressBar = document.getElementById('progressBar');
-            const progressMessage = document.getElementById('progressMessage');
-            const progressStatus = data.status || 0;
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), timeout))
+    ])
+    .then(data => {
+        const progressBar = document.getElementById('progressBar');
+        const progressMessage = document.getElementById('progressMessage');
+        const progressStatus = data.status || 0;
 
-            progressBar.style.width = progressStatus + '%';
-            progressBar.textContent = progressStatus.toFixed(2) + '%';
-            progressMessage.textContent = data.message;
-        })
-        .catch(error => {
-            console.error('Error fetching progress:', error);
-            const progressBar = document.getElementById('progressBar');
-            progressBar.style.width = '0%';
-            progressBar.textContent = 'Error';
-            const progressMessage = document.getElementById('progressMessage');
-            progressMessage.textContent = 'Failed to retrieve progress.';
-        });
+        // Update the progress bar.
+        progressBar.style.width = data.status + '%';
+        progressBar.setAttribute('aria-valuenow', data.status);
+        progressBar.textContent = data.status + '%';
+        progressBar.textContent = progressStatus.toFixed(2) + '%';
+        // Update the progress message.
+        progressMessage.textContent = data.message;
+
+        // Call the function again after 10 seconds to continue updating.
+        setTimeout(updateProgress, 2000);
+    })
+    .catch(error => {
+        console.error('Error fetching progress:', error);
+        
+        // Retry updating the progress after 10 seconds in case of an error.
+        setTimeout(updateProgress, 2000);
+    });
 }
 
-// Poll the progress every second
-setInterval(updateProgress, 2000);
-
+// Call the updateProgress function when the page loads.
+updateProgress();
 
 
 // Display selected file name dynamically
@@ -38,8 +47,7 @@ function showFileName() {
         const file = fileInput.files[0];
         const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);  
         fileName.style.display = 'block';
-        // استخدام innerHTML لإضافة span وتغيير لون حجم الملف
-        fileName.innerHTML = `File Selected: ${file.name} (<span style="color: #007bff;">${fileSizeMB} MB</span>)`;
+        fileName.innerText = `File Selected: ${file.name} (${fileSizeMB} MB)`;
     }
 }
 
@@ -68,5 +76,4 @@ window.onclick = function(event) {
         modal.style.display = 'none';
     }
 };
-
 
