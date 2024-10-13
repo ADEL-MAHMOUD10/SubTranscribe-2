@@ -75,13 +75,15 @@ def allowed_file(filename):
 def upload_or_link():
     """Handle file uploads or links for transcription."""
     global prog_status,prog_message
+
+    if request.method == 'GET':
+        prog_status = 0
+        prog_message = "Preparing"
+        return render_template("index.html")
+    
     if request.method == 'POST':
-        prog_status = 5
-        prog_message = "Starting"
         link = request.form.get('link')  # Get the link from the form
         if link:
-            prog_status = 50
-            prog_message = "processing"
             transcript_id = transcribe_from_link(link)  # Transcribe from the provided link
             return transcript_id  
 
@@ -107,20 +109,20 @@ def upload_or_link():
                     return render_template("error.html")  # Render error page if file type is not allowed
 
                 # Upload the audio file to GridFS
-                audio_id = upload_audio_to_gridfs(audio_file_path)
-                transcript_id = upload_audio_to_assemblyai(audio_file_path, progress)  # Pass progress to the function
-                Update_progress_db(transcript_id, status=100, message="completed", Section="Download page", file_name=filename)
+                # audio_id = upload_audio_to_gridfs(audio_file_path)
+                transcript_id = upload_audio_to_assemblyai(audio_file_path)  # Pass progress to the function
+                # Update_progress_db(transcript_id, status=100, message="completed", Section="Download page", file_name=filename)
                 
+                return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download subtitle
                 # Delete the audio file from GridFS after redirecting
-                delete_audio_from_gridfs(audio_id)  # Call the delete function
-                if audio_id:
-                    time.sleep(10)
-                    if transcript_id:
-                        Update_progress_db(transcript_id, status=prog_status, message="completed", Section="Download page", file_name=filename)
-                        return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download subtitle
-                    else:
-                        Update_progress_db(transcript_id, status=0, message="Transcription failed", Section="Error Page")
-                        return render_template("error.html", error_message="Transcription failed. Please try again.")
+                # delete_audio_from_gridfs(audio_id)  # Call the delete function
+                # if audio_id:
+                #     time.sleep(10)
+                #     if transcript_id:
+                #         Update_progress_db(transcript_id, status=prog_status, message="completed", Section="Download page", file_name=filename)
+                #     else:
+                #         Update_progress_db(transcript_id, status=0, message="Transcription failed", Section="Error Page")
+                #         return render_template("error.html", error_message="Transcription failed. Please try again.")
             except Exception as e:
                 return render_template("error.html")  # Render error page
         else:
@@ -141,26 +143,62 @@ def convert_video_to_audio(video_path):
         print(f"Error converting video to audio: {e}")
         return None
 
+import requests
+import yt_dlp
+from tqdm import tqdm
+from flask import redirect, url_for, render_template
+
 def transcribe_from_link(link):
     """Transcribe audio from a provided link."""
-    global prog_status,prog_message
+    global prog_status, prog_message
     ydl_opts = {
         'format': 'bestaudio/best',  # Select the best audio format
         'quiet': True,                # Suppress output messages
         'no_warnings': True,          # Suppress warnings
         'extract_audio': True,        # Extract audio from the video
-        'skip_download': True,    # Skip downloading the actual file
+        'skip_download': True,        # Skip downloading the actual file
     }
+
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        prog_status = 1.3
         info = ydl.extract_info(link)  # Extract information from the provided link
         audio_url = info.get('url', None)  # Get the audio URL
 
+        # Get the size of the audio file using HEAD request
+        response = requests.head(audio_url)
+        total_size = int(response.headers.get('content-length', 0))  # Get total file size
+
+        # Initialize progress bar
+        with tqdm(total=total_size, unit='B', unit_scale=True, desc='Uploading', ncols=100) as bar:
+            def upload_chunks():
+                global prog_status, prog_message
+                # Stream the audio file in chunks
+                with requests.get(audio_url, stream=True) as f:
+                    for chunk in f.iter_content(chunk_size=450000):  # Read 85KB chunks
+                        if not chunk:
+                            break
+                        yield chunk
+                        bar.update(len(chunk))  # Update progress bar
+                        
+                        # Update the progress dictionary for frontend
+                        prog_status = (bar.n / total_size) * 100
+                        prog_message = f"Processing... {prog_status:.2f}%"
+                        if prog_status >= 100:
+                            prog_message = "Please wait for a few seconds..."
+                            break
+
+            # Upload the audio file to AssemblyAI in chunks
+            base_url = "https://api.assemblyai.com/v2"
+            headers = {"authorization": "2ba819026c704d648dced28f3f52406f"}  # Set authorization header
+            response = requests.post(base_url + "/upload", headers=headers, data=upload_chunks())
+
+            # Check upload response
+            if response.status_code != 200:
+                return f"Error uploading audio: {response.json()}"
+
     # Send the audio URL to AssemblyAI for transcription
-    print(audio_url)
     prog_status = 60
-    prog_message = "processing"
-    base_url = "https://api.assemblyai.com/v2"
-    headers = {"authorization": "2ba819026c704d648dced28f3f52406f"}  # Set authorization header
+    prog_message = "Processing"
     data = {"audio_url": audio_url}  # Prepare data with audio URL
     response = requests.post(base_url + "/transcript", json=data, headers=headers)  # Make POST request to create a transcript
 
@@ -169,7 +207,6 @@ def transcribe_from_link(link):
 
     transcript_id = response.json()['id']  # Get the transcript ID from the response
 
-    
     # Polling to check the status of the transcript
     while True:
         transcript_response = requests.get(f"{base_url}/transcript/{transcript_id}", headers=headers)  # Get the status of the transcript
@@ -178,7 +215,7 @@ def transcribe_from_link(link):
             prog_message = "Please wait for a few seconds..."
             transcript_data = transcript_response.json()  # Parse the JSON response
             if transcript_data['status'] == 'completed':  # If the transcription is completed
-                Update_progress_db(transcript_id, status=prog_status, message="complated", Section="Download page", link=audio_url)  # Update progress in the database
+                Update_progress_db(transcript_id, status=prog_status, message="Completed", Section="Download page", link=audio_url)  # Update progress in the database
                 return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download page
             elif transcript_data['status'] == 'error':  # If there was an error during transcription
                 Update_progress_db(transcript_id, status=0, message="Invalid Link", Section="Link", link=audio_url)  # Update database with error
@@ -186,15 +223,15 @@ def transcribe_from_link(link):
         else:
             return render_template("error.html")  # Render error page if status request failed
 
-def upload_audio_to_gridfs(file_path):
-    """Upload audio file to MongoDB using GridFS."""
-    with open(file_path, "rb") as f:
-        # Store the file in GridFS and return the file ID
-        audio_id = fs.put(f, filename=os.path.basename(file_path), content_type='audio/video')
+# def upload_audio_to_gridfs(file_path):
+#     """Upload audio file to MongoDB using GridFS."""
+#     with open(file_path, "rb") as f:
+#         # Store the file in GridFS and return the file ID
+#         audio_id = fs.put(f, filename=os.path.basename(file_path), content_type='audio/video')
 
-    return audio_id
+#     return audio_id
 
-def upload_audio_to_assemblyai(audio_path, progress):
+def upload_audio_to_assemblyai(audio_path):
     """Upload audio file to AssemblyAI for transcription with progress tracking."""
     global prog_status,prog_message
     headers = {"authorization": "2ba819026c704d648dced28f3f52406f"}
@@ -202,18 +239,18 @@ def upload_audio_to_assemblyai(audio_path, progress):
     
     total_size = os.path.getsize(audio_path)  # Get the file size
 
-    transcript_id = "_id"  
-    prog_status = 10 
+    prog_status = 1.3
     prog_message = "Uploading"
-    progress = {"status": prog_status, "message": prog_message}
     # Use tqdm to create a progress bar
     with open(audio_path, "rb") as f:
+        progress = {"status": prog_status, "message": prog_message}
+
         # Initialize tqdm progress bar
         with tqdm(total=total_size, unit='B', unit_scale=True, desc='Uploading', ncols=100) as bar:
             def upload_chunks():
                 global prog_status,prog_message
                 while True:
-                    chunk = f.read(85000)  # Read 850KB chunks
+                    chunk = f.read(850000)  # Read 850KB chunks
                     if not chunk:
                         break
                     yield chunk
@@ -225,25 +262,26 @@ def upload_audio_to_assemblyai(audio_path, progress):
                     if prog_status >= 100:
                         prog_message = "Please wait for a few seconds..."
                         break
-                    # Update the progress in MongoDB
-                    Update_progress_db(transcript_id, prog_status, prog_message, "Uploading", file_name=audio_path)
+
                     progress = {"status": prog_status, "message": prog_message}
             # Upload the audio file to AssemblyAI in chunks
             response = requests.post(base_url + "/upload", headers=headers, data=upload_chunks())
 
-    upload_url = response.json()["upload_url"]  # Get the upload URL
-
-    # Prepare the request data with the webhook URL
-    data = {
-        "audio_url": upload_url,
-        "webhook_url": "https://subtranscribe.koyeb.app/progress"   
-    }
-    
+    upload_url = response.json()["upload_url"]
+    data = {"audio_url": upload_url}
     response = requests.post(base_url + "/transcript", json=data, headers=headers)
-    transcript_id = response.json().get('id')  # Get the transcript ID
-    progress = {"status": prog_status, "message": prog_message}
-    return transcript_id # Return the transcript ID
-
+    transcript_id = response.json()['id']
+    polling_endpoint = f"https://api.assemblyai.com/v2/transcript/{transcript_id}"
+    progress = {"status": prog_status, "message": prog_message}  
+    while True:
+        transcription_result = requests.get(polling_endpoint, headers=headers).json()
+        if transcription_result['status'] == 'completed':
+            # Update the progress in MongoDB
+            Update_progress_db(transcript_id, prog_status, prog_message, "Download page", file_name=audio_path)
+            os.remove(audio_path) 
+            return transcript_id
+        elif transcription_result['status'] == 'error':
+            raise RuntimeError(f"Transcription failed: {transcription_result['error']}")
 
 @app.route('/progress', methods=['GET', 'POST'])
 @cross_origin()  # Allow CORS for this route
