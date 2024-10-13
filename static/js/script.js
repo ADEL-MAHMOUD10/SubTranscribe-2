@@ -1,6 +1,11 @@
 function updateProgress() {
     const timeout = 1000; // Set a timeout for fetch requests.
 
+    // Reset progress bar on page load
+    const progressBar = document.getElementById('progressBar');
+    const progressMessage = document.getElementById('progressMessage');
+    progressBar.style.width = '0%'; // Reset progress bar to 0
+    progressBar.setAttribute('aria-valuenow', 0);
     // Use Promise.race to implement a timeout for the fetch request.
     Promise.race([
         fetch('/progress').then(response => {
@@ -12,8 +17,6 @@ function updateProgress() {
         new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), timeout))
     ])
     .then(data => {
-        const progressBar = document.getElementById('progressBar');
-        const progressMessage = document.getElementById('progressMessage');
         const progressPercentage = data.status || 0;
 
         // Update the progress bar.
@@ -24,7 +27,7 @@ function updateProgress() {
         // Change color based on progress.
         if (progressPercentage === 100) {
             progressBar.style.backgroundColor = 'green'; // Success color
-            progressMessage.textContent = "Processing complete!";
+            progressMessage.textContent = "Please wait for a few seconds...";
             return; // Stop further updates
         } else if (progressPercentage < 100) {
             progressBar.style.backgroundColor = ''; // Default color
@@ -56,6 +59,7 @@ function showFileName() {
         fileName.innerText = `File Selected: ${file.name} (${fileSizeMB} MB)`;
     }
 }
+
 
 function showWarningMessage() {
     const linkInput = document.getElementById('link').value;
