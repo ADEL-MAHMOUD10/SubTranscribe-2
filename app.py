@@ -13,14 +13,12 @@ from pymongo import MongoClient
 from tqdm import tqdm
 from flask_cors import CORS, cross_origin
 
-
 # Suppress specific warnings
 warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 # Create a Flask application instance
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": ["http://localhost:5000", "https://subtranscribe.koyeb.app"]}})
-
 
 # Set up MongoDB connection
 cluster = MongoClient("mongodb+srv://Adde:1234@cluster0.1xefj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
@@ -207,7 +205,7 @@ def upload_audio_to_assemblyai(audio_path, progress):
     transcript_id = "_id"  
     prog_status = 10 
     prog_message = "Uploading"
-
+    progress = {"status": prog_status, "message": prog_message}
     # Use tqdm to create a progress bar
     with open(audio_path, "rb") as f:
         # Initialize tqdm progress bar
@@ -215,7 +213,7 @@ def upload_audio_to_assemblyai(audio_path, progress):
             def upload_chunks():
                 global prog_status,prog_message
                 while True:
-                    chunk = f.read(28000)  # Read 280KB chunks
+                    chunk = f.read(85000)  # Read 850KB chunks
                     if not chunk:
                         break
                     yield chunk
@@ -229,7 +227,7 @@ def upload_audio_to_assemblyai(audio_path, progress):
                         break
                     # Update the progress in MongoDB
                     Update_progress_db(transcript_id, prog_status, prog_message, "Uploading", file_name=audio_path)
-
+                    progress = {"status": prog_status, "message": prog_message}
             # Upload the audio file to AssemblyAI in chunks
             response = requests.post(base_url + "/upload", headers=headers, data=upload_chunks())
 
@@ -238,7 +236,7 @@ def upload_audio_to_assemblyai(audio_path, progress):
     # Prepare the request data with the webhook URL
     data = {
         "audio_url": upload_url,
-        "webhook_url": "https://subtranscribe.koyeb.app/"   
+        "webhook_url": "https://subtranscribe.koyeb.app/progress"   
     }
     
     response = requests.post(base_url + "/transcript", json=data, headers=headers)
@@ -246,12 +244,14 @@ def upload_audio_to_assemblyai(audio_path, progress):
     progress = {"status": prog_status, "message": prog_message}
     return transcript_id # Return the transcript ID
 
-@app.route('/progress')
+
+@app.route('/progress', methods=['GET', 'POST'])
 @cross_origin()  # Allow CORS for this route
 def progress_status():
     """Return the current progress status as JSON."""
-    global prog_status, prog_message
-    return jsonify({"status": prog_status, "message": prog_message})
+    global prog_status, prog_message , progress
+    progress = {"status": prog_status, "message": prog_message}
+    return jsonify(progress)
        
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
