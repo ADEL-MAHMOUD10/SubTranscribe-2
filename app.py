@@ -26,7 +26,9 @@ db = cluster["Datedb"]  # Specify the database name
 fs = gridfs.GridFS(db)  # Create a GridFS instance for file storage
 
 # Initial progress status
-progress = {"status": 0, "message": "Preparing"}
+prog_status = 0
+prog_message = "Preparing"
+progress = {"status": prog_status, "message": prog_message}
 
 def Update_progress_db(transcript_id, status, message, Section, file_name=None, link=None):
     """Update the progress status in the MongoDB database."""
@@ -70,18 +72,22 @@ def Create_subtitle_to_db(subtitle_path):
 
 def upload_audio_to_assemblyai(audio_path, progress):
     """Upload audio file to AssemblyAI for transcription with progress tracking."""
+    global prog_status,prog_message
     headers = {"authorization": "2ba819026c704d648dced28f3f52406f"}
     base_url = "https://api.assemblyai.com/v2"
     
     total_size = os.path.getsize(audio_path)  # Get the file size
 
     transcript_id = "_id"  
-    
+    prog_status = 10 
+    prog_message = "Uploading"
+
     # Use tqdm to create a progress bar
     with open(audio_path, "rb") as f:
         # Initialize tqdm progress bar
         with tqdm(total=total_size, unit='B', unit_scale=True, desc='Uploading', ncols=100) as bar:
             def upload_chunks():
+                global prog_status,prog_message
                 while True:
                     chunk = f.read(409600)  # Read 8KB chunks
                     if not chunk:
@@ -91,11 +97,14 @@ def upload_audio_to_assemblyai(audio_path, progress):
                     
                     # Update the progress dictionary for frontend
                     prog_status = (bar.n / total_size) * 100
-                    progress["status"] = prog_status
-                    progress["message"] = f"Uploading... {progress['status']:.2f}%"
-                    
+                    prog_message = f"Uploading... {prog_status:.2f}%"
+
+                    if prog_status >= 100:
+                        prog_message = "Please wait for a few seconds..."
+                        break
+
                     # Update the progress in MongoDB
-                    Update_progress_db(transcript_id, progress["status"], progress["message"], "Uploading", file_name=audio_path)
+                    Update_progress_db(transcript_id, prog_status, prog_message, "Uploading", file_name=audio_path)
 
             # Upload the audio file to AssemblyAI in chunks
             response = requests.post(base_url + "/upload", headers=headers, data=upload_chunks())
@@ -110,14 +119,15 @@ def upload_audio_to_assemblyai(audio_path, progress):
     
     response = requests.post(base_url + "/transcript", json=data, headers=headers)
     transcript_id = response.json().get('id')  # Get the transcript ID
-    
-    return transcript_id  # Return the transcript ID
+    progress = {"status": prog_status, "message": prog_message}
+    return transcript_id # Return the transcript ID
 
 
 @app.route('/progress')
 def progress_status():
     """Return the current progress status as JSON."""
-    return jsonify(progress)
+    global prog_status,prog_message
+    return jsonify({"status": prog_status, "message": prog_message})
 
 def allowed_file(filename):
     """Check if the uploaded file has an allowed extension."""
@@ -132,10 +142,10 @@ def delete_audio_from_gridfs(audio_id):
 @app.route('/', methods=['GET', 'POST'])
 def upload_or_link():
     """Handle file uploads or links for transcription."""
+    global prog_status,prog_message
     if request.method == 'POST':
-        progress["status"] = 10
-        progress["message"] = "Uploading"
-        
+        prog_status = 5
+        prog_message = "Starting"
         link = request.form.get('link')  # Get the link from the form
         if link:
             transcript_id = transcribe_from_link(link)  # Transcribe from the provided link
@@ -229,10 +239,11 @@ def transcribe_from_link(link):
         transcript_response = requests.get(f"{base_url}/transcript/{transcript_id}", headers=headers)  # Get the status of the transcript
         if transcript_response.status_code == 200:  # Check if the request was successful
             transcript_data = transcript_response.json()  # Parse the JSON response
-            progress["status"] = 100  # Update progress status to 100%
-            progress["message"] = "Processing Complete, Please wait a second."  # Set progress message to "Processing Complete"
+            global prog_status,prog_message
+            prog_status = 100 
+            prog_message  = "completed"
             if transcript_data['status'] == 'completed':  # If the transcription is completed
-                Update_progress_db(transcript_id, status=100, message="completed", Section="Download page", link=audio_url)  # Update progress in the database
+                Update_progress_db(transcript_id, status=prog_status, message=prog_message, Section="Download page", link=audio_url)  # Update progress in the database
                 return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download page
             elif transcript_data['status'] == 'error':  # If there was an error during transcription
                 Update_progress_db(transcript_id, status=0, message="Invalid Link", Section="Link", link=audio_url)  # Update database with error
