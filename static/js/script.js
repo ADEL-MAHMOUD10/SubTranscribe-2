@@ -1,5 +1,5 @@
 setInterval(function() {
-    fetch('/progress')
+    fetch('/progress', { method: 'GET' })
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok.');
