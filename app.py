@@ -6,7 +6,8 @@ import pymongo
 import ffmpeg
 import gridfs
 import yt_dlp
-from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file
+import json
+from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file, Response
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from pymongo import MongoClient
@@ -287,8 +288,13 @@ def progress_status():
     """Return the current progress status as JSON."""
     global prog_status, prog_message, progress
     progress = {"status": prog_status, "message": prog_message}
-    return jsonify(progress)
-       
+    response = Response(
+        response=json.dumps(progress),
+        status=200,
+        mimetype='application/json'
+    )
+    return response
+    
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
     """Handle subtitle download based on the transcript ID."""
