@@ -330,4 +330,4 @@ def serve_file(filename):
 
 # Main entry point
 if __name__ == "__main__":
-    app.run(host=None)
+    app.run(host=None, debug=True)
