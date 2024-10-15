@@ -282,12 +282,13 @@ def upload_audio_to_assemblyai(audio_path):
             raise RuntimeError(f"Transcription failed: {transcription_result['error']}")
 
 @cross_origin()  # Allow CORS for this route
-@app.route('/progress', methods=['GET', 'POST'])
+@app.route('/progress', methods=['POST'])
 def progress_status():
     """Return the current progress status as JSON."""
-    global prog_status, prog_message , progress
+    global prog_status, prog_message 
     progress = {"status": prog_status, "message": prog_message}
     return jsonify(progress)
+ 
  
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
