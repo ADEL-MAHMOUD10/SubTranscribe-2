@@ -294,6 +294,7 @@ def progress_status():
         mimetype='application/json'
     )
     return response
+   
     
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
