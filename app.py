@@ -25,10 +25,6 @@ cluster = MongoClient("mongodb+srv://Adde:1234@cluster0.1xefj.mongodb.net/?retry
 db = cluster["Datedb"]  # Specify the database name
 fs = gridfs.GridFS(db)  # Create a GridFS instance for file storage
 
-# Initial progress status
-prog_status = 0
-prog_message = "Preparing"
-progress = {"status": prog_status, "message": prog_message}
 
 def Update_progress_db(transcript_id, status, message, Section, file_name=None, link=None):
     """Update the progress status in the MongoDB database."""
@@ -75,7 +71,6 @@ def allowed_file(filename):
 def upload_or_link():
     """Handle file uploads or links for transcription."""
     global prog_status,prog_message,progress
-    progress = {"status": prog_status, "message": prog_message}
     if request.method == 'GET':
         prog_status = 0
         prog_message = "Preparing"
