@@ -6,8 +6,7 @@ import pymongo
 import ffmpeg
 import gridfs
 import yt_dlp
-import json
-from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file, Response
+from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from pymongo import MongoClient
@@ -286,16 +285,10 @@ def upload_audio_to_assemblyai(audio_path):
 @app.route('/progress', methods=['GET', 'POST'])
 def progress_status():
     """Return the current progress status as JSON."""
-    global prog_status, prog_message, progress
+    global prog_status, prog_message , progress
     progress = {"status": prog_status, "message": prog_message}
-    response = Response(
-        response=json.dumps(progress),
-        status=200,
-        mimetype='application/json'
-    )
-    return response
-   
-    
+    return jsonify(progress)
+ 
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
     """Handle subtitle download based on the transcript ID."""
