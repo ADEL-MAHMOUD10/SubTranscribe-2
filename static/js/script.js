@@ -1,5 +1,10 @@
 setInterval(function() {
-    fetch('/progress', { method: 'GET' })
+    fetch('https://subtranscribe.koyeb.app/progress',{
+        method: 'post',
+        mode: 'cors',
+        headers: {
+        'Content-Type': 'application/json'
+       }})
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok.');
@@ -30,6 +35,7 @@ setInterval(function() {
             console.error('Error fetching progress:', error); // طباعة الخطأ
         });
 }, 1000);  // Poll every second
+
 // Display selected file name dynamically
 function showFileName() {
     const fileInput = document.getElementById("file");
