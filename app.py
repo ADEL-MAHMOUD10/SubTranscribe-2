@@ -11,7 +11,6 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 from pymongo import MongoClient
 from tqdm import tqdm
-from flask_cors import CORS, cross_origin
 
 
 # Suppress specific warnings
@@ -19,7 +18,6 @@ warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 # Create a Flask application instance
 app = Flask(__name__)
-CORS(app)
 
 
 # Set up MongoDB connection
@@ -214,33 +212,63 @@ def convert_video_to_audio(video_path):
 
 def transcribe_from_link(link):
     """Transcribe audio from a provided link."""
-    global prog_status,prog_message
+    global prog_status, prog_message, progress
     ydl_opts = {
         'format': 'bestaudio/best',  # Select the best audio format
         'quiet': True,                # Suppress output messages
         'no_warnings': True,          # Suppress warnings
         'extract_audio': True,        # Extract audio from the video
-        'skip_download': True,    # Skip downloading the actual file
+        'skip_download': True,        # Skip downloading the actual file
     }
+
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        global prog_status, prog_message
+        prog_status = 1.3
         info = ydl.extract_info(link)  # Extract information from the provided link
         audio_url = info.get('url', None)  # Get the audio URL
 
+        # Get the size of the audio file using HEAD request
+        response = requests.head(audio_url)
+        total_size = int(response.headers.get('content-length', 0))  # Get total file size
+
+        # Initialize progress bar
+        with tqdm(total=total_size, unit='B', unit_scale=True, desc='Uploading', ncols=100) as bar:
+            def upload_chunks():
+                global prog_status, prog_message
+                # Stream the audio file in chunks
+                with requests.get(audio_url, stream=True) as f:
+                    for chunk in f.iter_content(chunk_size=450000):  # Read 85KB chunks
+                        if not chunk:
+                            break
+                        yield chunk
+                        bar.update(len(chunk))  # Update progress bar
+                        
+                        # Update the progress dictionary for frontend
+                        prog_status = (bar.n / total_size) * 100
+                        prog_message = f"Processing... {prog_status:.2f}%"
+                        if prog_status >= 100:
+                            prog_message = "Please wait for a few seconds..."
+                            break
+
+            # Upload the audio file to AssemblyAI in chunks
+            base_url = "https://api.assemblyai.com/v2"
+            headers = {"authorization": "5154fd34783d40ba9b1b27867b43ebaa"}  # Set authorization header
+            response = requests.post(base_url + "/upload", headers=headers, data=upload_chunks())
+
+            # Check upload response
+            if response.status_code != 200:
+                return f"Error uploading audio: {response.json()}"
+
     # Send the audio URL to AssemblyAI for transcription
-    print(audio_url)
-    prog_status = 60
-    prog_message = "processing"
-    base_url = "https://api.assemblyai.com/v2"
-    headers = {"authorization": "2ba819026c704d648dced28f3f52406f"}  # Set authorization header
     data = {"audio_url": audio_url}  # Prepare data with audio URL
     response = requests.post(base_url + "/transcript", json=data, headers=headers)  # Make POST request to create a transcript
 
+    progress = {"status": prog_status, "message": prog_message}
     if response.status_code != 200:  # Check if the request was successful
         return f"Error creating transcript: {response.json()}"  # Return error message if not successful
 
     transcript_id = response.json()['id']  # Get the transcript ID from the response
 
-    
     # Polling to check the status of the transcript
     while True:
         transcript_response = requests.get(f"{base_url}/transcript/{transcript_id}", headers=headers)  # Get the status of the transcript
@@ -249,7 +277,7 @@ def transcribe_from_link(link):
             prog_message = "Please wait for a few seconds..."
             transcript_data = transcript_response.json()  # Parse the JSON response
             if transcript_data['status'] == 'completed':  # If the transcription is completed
-                Update_progress_db(transcript_id, status=prog_status, message="complated", Section="Download page", link=audio_url)  # Update progress in the database
+                Update_progress_db(transcript_id, status=prog_status, message="Completed", Section="Download page", link=audio_url)  # Update progress in the database
                 return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download page
             elif transcript_data['status'] == 'error':  # If there was an error during transcription
                 Update_progress_db(transcript_id, status=0, message="Invalid Link", Section="Link", link=audio_url)  # Update database with error
