@@ -13,7 +13,6 @@ from datetime import datetime
 from pymongo import MongoClient
 from tqdm import tqdm
 
-
 # Suppress specific warnings
 warnings.filterwarnings("ignore", category=SyntaxWarning)
 
@@ -21,6 +20,8 @@ warnings.filterwarnings("ignore", category=SyntaxWarning)
 app = Flask(__name__)
 
 
+prog_status = None
+prog_message = None
 # Set up MongoDB connection
 cluster = MongoClient("mongodb+srv://Adde:1234@cluster0.1xefj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 db = cluster["Datedb"]  # Specify the database name
@@ -275,10 +276,18 @@ def upload_audio_to_assemblyai(audio_path):
         elif transcription_result['status'] == 'error':
             raise RuntimeError(f"Transcription failed: {transcription_result['error']}")
 
-@app.route('/progress', methods=['GET', 'POST'])
+
+@app.route('/progress', methods=['GET'])
 def progress_status():
-    """Return the current progress status as JSON."""
-    global prog_status, prog_message , progress
+    global prog_status
+    global prog_message
+
+    if prog_status is None:
+        # Default values if progress is not yet initialized
+        prog_status = 'unknown'
+        prog_message = 'No progress information available'
+
+    # Return the current progress status and message
     progress = {"status": prog_status, "message": prog_message}
     return jsonify(progress)
        
