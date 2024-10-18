@@ -11,5 +11,3 @@ gunicorn
 ffmpeg-python
 yt-dlp
 tqdm
-flask-cors
-
