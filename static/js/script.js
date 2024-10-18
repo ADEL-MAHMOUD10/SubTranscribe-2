@@ -29,7 +29,6 @@ function updateProgress() {
 setInterval(updateProgress, 2000);
 
 
-
 // Display selected file name dynamically
 function showFileName() {
     const fileInput = document.getElementById("file");
@@ -38,8 +37,7 @@ function showFileName() {
         const file = fileInput.files[0];
         const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);  
         fileName.style.display = 'block';
-        // استخدام innerHTML لإضافة span وتغيير لون حجم الملف
-        fileName.innerHTML = `File Selected: ${file.name} (<span style="color: #007bff;">${fileSizeMB} MB</span>)`;
+        fileName.innerText = `File Selected: ${file.name} (${fileSizeMB} MB)`;
     }
 }
 
