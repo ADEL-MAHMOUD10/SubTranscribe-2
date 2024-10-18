@@ -41,6 +41,7 @@ body{
 }
 .download-success span {
     pointer-events: none; /* Disable pointer events for the text */
+    color: #1877F2;
 }
 footer {
     background-color: #212529;
