@@ -277,7 +277,7 @@ def upload_audio_to_assemblyai(audio_path):
             raise RuntimeError(f"Transcription failed: {transcription_result['error']}")
 
 
-@app.route('/progress', methods=['GET'])
+@app.route('/progress', methods=['POST'])
 def progress_status():
     global prog_status
     global prog_message
