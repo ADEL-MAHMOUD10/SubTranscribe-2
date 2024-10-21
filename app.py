@@ -109,6 +109,7 @@ def upload_or_link():
                 # audio_id = upload_audio_to_gridfs(audio_file_path)
                 transcript_id = upload_audio_to_assemblyai(audio_file_path)  # Pass progress to the function
                 # Update_progress_db(transcript_id, status=100, message="completed", Section="Download page", file_name=filename)
+                progress = {"status": prog_status, "message": prog_message}
                 return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download subtitle
                 # Delete the audio file from GridFS after redirecting
                 # delete_audio_from_gridfs(audio_id)  # Call the delete function
@@ -192,6 +193,7 @@ def transcribe_from_link(link):
     data = {"audio_url": audio_url}  # Prepare data with audio URL
     response = requests.post(base_url + "/transcript", json=data, headers=headers)  # Make POST request to create a transcript
 
+    progress = {"status": prog_status, "message": prog_message}
     if response.status_code != 200:  # Check if the request was successful
         return f"Error creating transcript: {response.json()}"  # Return error message if not successful
 
@@ -232,6 +234,7 @@ def upload_audio_to_assemblyai(audio_path):
 
     prog_status = 1.3
     prog_message = "Uploading"
+    progress = {"status": prog_status, "message": prog_message}
     # Use tqdm to create a progress bar
     with open(audio_path, "rb") as f:
 
@@ -260,6 +263,7 @@ def upload_audio_to_assemblyai(audio_path):
     response = requests.post(base_url + "/transcript", json=data, headers=headers)
     transcript_id = response.json()['id']
     polling_endpoint = f"https://api.assemblyai.com/v2/transcript/{transcript_id}"
+    progress = {"status": prog_status, "message": prog_message}  
     while True:
         transcription_result = requests.get(polling_endpoint, headers=headers).json()
         if transcription_result['status'] == 'completed':
@@ -271,7 +275,6 @@ def upload_audio_to_assemblyai(audio_path):
             raise RuntimeError(f"Transcription failed: {transcription_result['error']}")
 
 @app.route('/reset-progress', methods=['POST'])
-@cross_origin()  # Allow CORS for this route
 def reset_progress():
     """Reset the current progress status."""
     global prog_status, prog_message
@@ -279,11 +282,10 @@ def reset_progress():
     prog_message = "Ready to upload"
     return jsonify({"message": "Progress reset successfully"})
 
-@app.route('/progress', methods=['GET', 'POST'])
-@cross_origin()  # Allow CORS for this route
+@app.route('/progress', methods=['POST'])
 def progress_status():
     """Return the current progress status as JSON."""
-    global prog_status, prog_message , progress
+    global prog_status, prog_message 
     if prog_status is None:
         prog_status = 0  
     if prog_message is None:
