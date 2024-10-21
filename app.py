@@ -109,7 +109,7 @@ def upload_or_link():
                 # audio_id = upload_audio_to_gridfs(audio_file_path)
                 transcript_id = upload_audio_to_assemblyai(audio_file_path)  # Pass progress to the function
                 # Update_progress_db(transcript_id, status=100, message="completed", Section="Download page", file_name=filename)
-                progress = {"status": prog_status, "message": prog_message}
+                progress = {"status": float(prog_status), "message": prog_message}
                 return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download subtitle
                 # Delete the audio file from GridFS after redirecting
                 # delete_audio_from_gridfs(audio_id)  # Call the delete function
@@ -193,7 +193,7 @@ def transcribe_from_link(link):
     data = {"audio_url": audio_url}  # Prepare data with audio URL
     response = requests.post(base_url + "/transcript", json=data, headers=headers)  # Make POST request to create a transcript
 
-    progress = {"status": prog_status, "message": prog_message}
+    progress = {"status": float(prog_status), "message": prog_message}
     if response.status_code != 200:  # Check if the request was successful
         return f"Error creating transcript: {response.json()}"  # Return error message if not successful
 
