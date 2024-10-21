@@ -1,5 +1,20 @@
-const intervalId = setInterval(function() {
-    fetch('/progress', { method: 'GET' })
+// Reset the progress when the page loads
+window.addEventListener('DOMContentLoaded', (event) => {
+    // Reset the progress bar
+    const progressBar = document.getElementById('progressBar');
+    const messageElement = document.getElementById('progressMessage');
+
+    progressBar.style.width = '0%';
+    progressBar.setAttribute('aria-valuenow', 0);
+    progressBar.textContent = '0%';
+    messageElement.innerText = 'Ready to upload'; // You can set this to any initial message
+
+    // Optionally reset the backend status
+    resetProgressStatus();
+});
+
+function resetProgressStatus() {
+    fetch('/reset-progress', { method: 'POST' })
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok.');
@@ -7,9 +22,26 @@ const intervalId = setInterval(function() {
             return response.json();
         })
         .then(data => {
-            console.log(data); // Log the entire response data
+            console.log('Progress reset:', data);
+        })
+        .catch(error => {
+            console.error('Error resetting progress:', error);
+        });
+}
 
-            const progressPercentage = typeof data.status === 'number' ? data.status : 0; // Ensure it's a number
+// Continue with your interval function
+const intervalId = setInterval(function() {
+    fetch('/progress', { method: 'POST' })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok.');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(data);
+
+            const progressPercentage = typeof data.status === 'number' ? data.status : parseFloat(data.status) || 0;
 
             // Update the progress bar.
             const progressBar = document.getElementById('progressBar');
@@ -17,7 +49,6 @@ const intervalId = setInterval(function() {
             progressBar.setAttribute('aria-valuenow', progressPercentage);
             progressBar.textContent = `${progressPercentage.toFixed(2)}%`;
 
-            // Update the message from prog_message
             const messageElement = document.getElementById('progressMessage');
             messageElement.innerText = data.message;
 
@@ -25,7 +56,7 @@ const intervalId = setInterval(function() {
             if (progressPercentage === 100) {
                 progressBar.style.backgroundColor = 'green'; // Success color
                 messageElement.textContent = "Please wait for a few seconds...";
-                clearInterval(intervalId); // Stop further updates
+                clearInterval(intervalId);
             } else if (progressPercentage >= 50) {
                 progressBar.style.backgroundColor = 'orange'; // Warning color
             } else {
