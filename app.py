@@ -286,11 +286,7 @@ def reset_progress():
 def progress_status():
     """Return the current progress status as JSON."""
     global prog_status, prog_message 
-    if prog_status is None:
-        prog_status = 0  
-    if prog_message is None:
-        prog_message = "No progress yet" 
-    progress = {"status": float(prog_status), "message": prog_message}
+    progress = {"status": prog_status, "message": prog_message}
     return jsonify(progress)
        
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
