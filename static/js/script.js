@@ -7,7 +7,9 @@ const intervalId = setInterval(function() {
             return response.json();
         })
         .then(data => {
-            const progressPercentage = data.status || 0;
+            console.log(data); // Log the entire response data
+
+            const progressPercentage = typeof data.status === 'number' ? data.status : 0; // Ensure it's a number
 
             // Update the progress bar.
             const progressBar = document.getElementById('progressBar');
@@ -15,15 +17,18 @@ const intervalId = setInterval(function() {
             progressBar.setAttribute('aria-valuenow', progressPercentage);
             progressBar.textContent = `${progressPercentage.toFixed(2)}%`;
 
-            document.getElementById('progressMessage').innerText = data.message;
+            // Update the message from prog_message
+            const messageElement = document.getElementById('progressMessage');
+            messageElement.innerText = data.message;
 
             // Change color based on progress.
             if (progressPercentage === 100) {
                 progressBar.style.backgroundColor = 'green'; // Success color
-                document.getElementById('progressMessage').textContent = "Please wait for a few seconds...";
-
+                messageElement.textContent = "Please wait for a few seconds...";
                 clearInterval(intervalId); // Stop further updates
-            } else if (progressPercentage < 100) {
+            } else if (progressPercentage >= 50) {
+                progressBar.style.backgroundColor = 'orange'; // Warning color
+            } else {
                 progressBar.style.backgroundColor = ''; // Default color
             }
         })
@@ -32,7 +37,6 @@ const intervalId = setInterval(function() {
             document.getElementById('progressMessage').innerText = "Error fetching progress. Please try again.";
         });
 }, 2000); // Poll every 2 seconds
-
 
 // Display selected file name dynamically
 function showFileName() {
