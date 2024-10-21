@@ -284,8 +284,8 @@ def reset_progress():
 def progress_status():
     """Return the current progress status as JSON."""
     global prog_status, prog_message 
-    progress = {"status": prog_status, "message": prog_message}
-    return jsonify(progress)
+    return jsonify({ "message": prog_message, "status": int(prog_status)})
+       
        
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
