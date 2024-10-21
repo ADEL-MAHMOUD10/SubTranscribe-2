@@ -20,8 +20,6 @@ warnings.filterwarnings("ignore", category=SyntaxWarning)
 app = Flask(__name__)
 
 
-prog_status = None
-prog_message = None
 # Set up MongoDB connection
 cluster = MongoClient("mongodb+srv://Adde:1234@cluster0.1xefj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 db = cluster["Datedb"]  # Specify the database name
