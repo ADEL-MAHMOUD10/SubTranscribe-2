@@ -1,5 +1,5 @@
-setInterval(function() {
-    fetch('/progress',{ method: 'GET'})
+const intervalId = setInterval(function() {
+    fetch('/progress', { method: 'GET' })
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok.');
@@ -7,29 +7,31 @@ setInterval(function() {
             return response.json();
         })
         .then(data => {
-            const progressPercentage = data.status || 0; // التأكد من أن المتغير يعرف هنا
+            const progressPercentage = data.status || 0;
 
             // Update the progress bar.
             const progressBar = document.getElementById('progressBar');
             progressBar.style.width = `${progressPercentage}%`;
             progressBar.setAttribute('aria-valuenow', progressPercentage);
             progressBar.textContent = `${progressPercentage.toFixed(2)}%`;
-    
+
             document.getElementById('progressMessage').innerText = data.message;
 
             // Change color based on progress.
             if (progressPercentage === 100) {
                 progressBar.style.backgroundColor = 'green'; // Success color
                 document.getElementById('progressMessage').textContent = "Please wait for a few seconds...";
-                return; // Stop further updates
+
+                clearInterval(intervalId); // Stop further updates
             } else if (progressPercentage < 100) {
                 progressBar.style.backgroundColor = ''; // Default color
             }
         })
         .catch(error => {
-            console.error('Error fetching progress:', error); // طباعة الخطأ
+            console.error('Error fetching progress:', error);
+            document.getElementById('progressMessage').innerText = "Error fetching progress. Please try again.";
         });
-}, 1000);  // Poll every second
+}, 2000); // Poll every 2 seconds
 
 
 // Display selected file name dynamically
