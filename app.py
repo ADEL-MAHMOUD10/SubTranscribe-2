@@ -234,7 +234,7 @@ def upload_audio_to_assemblyai(audio_path):
 
     prog_status = 1.3
     prog_message = "Uploading"
-    progress = {"status": prog_status, "message": prog_message}
+    progress = {"status": float(prog_status), "message": prog_message}
     # Use tqdm to create a progress bar
     with open(audio_path, "rb") as f:
 
@@ -255,8 +255,6 @@ def upload_audio_to_assemblyai(audio_path):
                     if prog_status >= 100:
                         prog_message = "Please wait for a few seconds..."
                         break
-
-                    progress = {"status": prog_status, "message": prog_message}
             # Upload the audio file to AssemblyAI in chunks
             response = requests.post(base_url + "/upload", headers=headers, data=upload_chunks())
 
@@ -265,7 +263,7 @@ def upload_audio_to_assemblyai(audio_path):
     response = requests.post(base_url + "/transcript", json=data, headers=headers)
     transcript_id = response.json()['id']
     polling_endpoint = f"https://api.assemblyai.com/v2/transcript/{transcript_id}"
-    progress = {"status": prog_status, "message": prog_message}  
+    progress = {"status": float(prog_status), "message": prog_message}  
     while True:
         transcription_result = requests.get(polling_endpoint, headers=headers).json()
         if transcription_result['status'] == 'completed':
@@ -276,8 +274,8 @@ def upload_audio_to_assemblyai(audio_path):
         elif transcription_result['status'] == 'error':
             raise RuntimeError(f"Transcription failed: {transcription_result['error']}")
 
-
 @app.route('/reset-progress', methods=['POST'])
+@cross_origin()  # Allow CORS for this route
 def reset_progress():
     """Reset the current progress status."""
     global prog_status, prog_message
@@ -286,12 +284,16 @@ def reset_progress():
     return jsonify({"message": "Progress reset successfully"})
 
 @app.route('/progress', methods=['GET', 'POST'])
+@cross_origin()  # Allow CORS for this route
 def progress_status():
     """Return the current progress status as JSON."""
     global prog_status, prog_message , progress
-    progress = {"status": prog_status, "message": prog_message}
+    if prog_status is None:
+        prog_status = 0  
+    if prog_message is None:
+        prog_message = "No progress yet" 
+    progress = {"status": float(prog_status), "message": prog_message}
     return jsonify(progress)
-     
        
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
