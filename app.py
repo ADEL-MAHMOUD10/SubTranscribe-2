@@ -277,19 +277,21 @@ def upload_audio_to_assemblyai(audio_path):
             raise RuntimeError(f"Transcription failed: {transcription_result['error']}")
 
 
+@app.route('/reset-progress', methods=['POST'])
+def reset_progress():
+    """Reset the current progress status."""
+    global prog_status, prog_message
+    prog_status = 0
+    prog_message = "Ready to upload"
+    return jsonify({"message": "Progress reset successfully"})
+
 @app.route('/progress', methods=['GET', 'POST'])
 def progress_status():
-    global prog_status
-    global prog_message
-
-    if prog_status is None:
-        # Default values if progress is not yet initialized
-        prog_status = 'unknown'
-        prog_message = 'No progress information available'
-
-    # Return the current progress status and message
+    """Return the current progress status as JSON."""
+    global prog_status, prog_message , progress
     progress = {"status": prog_status, "message": prog_message}
     return jsonify(progress)
+     
        
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
