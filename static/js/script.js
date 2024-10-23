@@ -51,7 +51,7 @@ const intervalId = setInterval(function() {
         })
         .catch(error => {
             console.error('Error fetching progress:', error);
-            document.getElementById('progressMessage').innerText = "Error fetching progress. Please try again.";
+            document.getElementById('progressMessage').innerText = "Error fetching progress.";
         });
 }, 2000); // Poll every 2 seconds
 
