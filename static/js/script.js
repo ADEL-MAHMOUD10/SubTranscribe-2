@@ -1,4 +1,18 @@
 // Reset the progress when the page loads
+window.addEventListener('DOMContentLoaded', (event) => {
+    // Reset the progress bar
+    const progressBar = document.getElementById('progressBar');
+    const messageElement = document.getElementById('progressMessage');
+
+    progressBar.style.width = '0%';
+    progressBar.setAttribute('aria-valuenow', 0);
+    progressBar.textContent = '0%';
+    messageElement.innerText = 'Ready to upload'; // You can set this to any initial message
+
+    // Optionally reset the backend status
+    resetProgressStatus();
+});
+
 function resetProgressStatus() {
     fetch('/reset-progress', { method: 'POST' })
         .then(response => {
@@ -17,7 +31,7 @@ function resetProgressStatus() {
 
 // Continue with your interval function
 const intervalId = setInterval(function() {
-    fetch('/progress', { method: 'POST' })
+    fetch('/progress', { method: 'GET' })
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok.');
