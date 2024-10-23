@@ -19,7 +19,7 @@ warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 # Create a Flask application instance
 app = Flask(__name__)
-
+cors = CORS(app, resources={r"/*": {"origins": "https://subtranscribe.koyeb.app"}})
 
 # Set up MongoDB connection
 cluster = MongoClient("mongodb+srv://Adde:1234@cluster0.1xefj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
@@ -282,7 +282,7 @@ def reset_progress():
     prog_message = "Ready to upload"
     return jsonify({"message": "Progress reset successfully"})
 
-@app.route('/progress', methods=['POST'])
+@app.route('/progress', methods=['GET', 'POST'])
 @cross_origin()  # Allow CORS for this route
 def progress_status():
     """Return the current progress status as JSON."""
