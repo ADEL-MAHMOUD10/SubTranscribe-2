@@ -280,7 +280,7 @@ def reset_progress():
     prog_message = "Ready to upload"
     return jsonify({"message": "Progress reset successfully"})
 
-@app.route('/progress', methods=['POST'])
+@app.route('/progress', methods=['GET', 'POST'])
 def progress_status():
     """Return the current progress status as JSON."""
     global prog_status, prog_message 
