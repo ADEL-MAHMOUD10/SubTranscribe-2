@@ -8,6 +8,7 @@ import gridfs
 import yt_dlp
 import json
 from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file, Response
+from flask_cors import CORS, cross_origin
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from pymongo import MongoClient
@@ -273,6 +274,7 @@ def upload_audio_to_assemblyai(audio_path):
             raise RuntimeError(f"Transcription failed: {transcription_result['error']}")
 
 @app.route('/reset-progress', methods=['POST'])
+@cross_origin()  # Allow CORS for this route
 def reset_progress():
     """Reset the current progress status."""
     global prog_status, prog_message
@@ -280,7 +282,8 @@ def reset_progress():
     prog_message = "Ready to upload"
     return jsonify({"message": "Progress reset successfully"})
 
-@app.route('/progress', methods=['GET', 'POST'])
+@app.route('/progress', methods=['POST'])
+@cross_origin()  # Allow CORS for this route
 def progress_status():
     """Return the current progress status as JSON."""
     global prog_status, prog_message 
