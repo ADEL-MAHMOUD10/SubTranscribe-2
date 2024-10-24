@@ -14,11 +14,7 @@ window.addEventListener('DOMContentLoaded', (event) => {
 });
 
 function resetProgressStatus() {
-    fetch('/reset-progress', { method: 'GET',
-    credentials: 'include',
-    headers: {
-        'Content-Type': 'application/json'
-    }})
+    fetch('/reset-progress', { method: 'POST' })
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok.');
@@ -33,9 +29,14 @@ function resetProgressStatus() {
         });
 }
 
+
 // Continue with your interval function
 const intervalId = setInterval(function() {
-    fetch('/progress', { method: 'GET' })
+    fetch('/progress', { method: 'GET',
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json'
+        } })
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok.');
@@ -50,6 +51,7 @@ const intervalId = setInterval(function() {
             // Update the progress bar.
             const progressBar = document.getElementById('progressBar');
             progressBar.style.width = `${progressPercentage}%`;
+            progressBar.style.transition = 'width 0.5s ease';
             progressBar.setAttribute('aria-valuenow', progressPercentage);
             progressBar.textContent = `${progressPercentage.toFixed(2)}%`;
 
@@ -69,7 +71,7 @@ const intervalId = setInterval(function() {
         })
         .catch(error => {
             console.error('Error fetching progress:', error);
-            document.getElementById('progressMessage').innerText = "Error fetching progress.";
+            document.getElementById('progressMessage').innerText = "Error fetching progress. Please try again.";
         });
 }, 2000); // Poll every 2 seconds
 
