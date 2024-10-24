@@ -41,7 +41,7 @@ body, html {
 
 .container h1, h2, h3 {
     font-family: 'Roboto', sans-serif;
-    font-size: 2rem; 
+    font-size: 1.6rem; 
     font-weight: bold !important; 
     color: var(--primary-color) !important;
     margin: 20px 0; 
