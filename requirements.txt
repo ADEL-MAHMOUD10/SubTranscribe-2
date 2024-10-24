@@ -11,4 +11,5 @@ dnspython
 gunicorn
 ffmpeg-python
 yt-dlp
+uuid
 tqdm
