@@ -7,6 +7,7 @@ import ffmpeg
 import gridfs
 import yt_dlp
 import json
+import uuid
 from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file, Response
 from flask_cors import CORS, cross_origin
 from werkzeug.utils import secure_filename
@@ -25,6 +26,13 @@ cors = CORS(app, resources={r"/*": {"origins": "https://subtranscribe.koyeb.app"
 cluster = MongoClient("mongodb+srv://Adde:1234@cluster0.1xefj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 db = cluster["Datedb"]  # Specify the database name
 fs = gridfs.GridFS(db)  # Create a GridFS instance for file storage
+progress_collection = db['progress']  #(Collection)
+
+upload_id = str(uuid.uuid4())
+prog_status = 0
+prog_message = "Preparing"
+progress_data = {"_id": upload_id, "status": prog_status, "message": prog_message}
+progress_collection.update_one({"_id": upload_id}, {"$set": progress_data}, upsert=True)
 
 
 def Update_progress_db(transcript_id, status, message, Section, file_name=None, link=None):
@@ -222,18 +230,12 @@ def transcribe_from_link(link):
 
 #     return audio_id
 
-
 def upload_audio_to_assemblyai(audio_path):
     """Upload audio file to AssemblyAI for transcription with progress tracking."""
-    global prog_status,prog_message,progress
     headers = {"authorization": "5154fd34783d40ba9b1b27867b43ebaa"}
     base_url = "https://api.assemblyai.com/v2"
-    
-    total_size = os.path.getsize(audio_path)  # Get the file size
 
-    prog_status = 1.3
-    prog_message = "Uploading"
-    progress = {"status": prog_status, "message": prog_message}
+    total_size = os.path.getsize(audio_path)  # Get the file size
     # Use tqdm to create a progress bar
     with open(audio_path, "rb") as f:
 
@@ -251,8 +253,20 @@ def upload_audio_to_assemblyai(audio_path):
                     # Update the progress dictionary for frontend
                     prog_status = (bar.n / total_size) * 100
                     prog_message = f"processing... {prog_status:.2f}%"
+                    # print(f"Updated progress: {prog_status}")  # تحقق من القيمة
+
+                    # تحديث الحالة في MongoDB
+                    progress_data = {"status": prog_status, "message": prog_message}
+                    result = progress_collection.update_one(
+                        {"_id": upload_id},
+                        {"$set": progress_data},
+                        upsert=True
+                    )
+                    # print(f"MongoDB update result: {result.modified_count}")
+
                     if prog_status >= 100:
                         prog_message = "Please wait for a few seconds..."
+                        progress_collection.update_one({"_id": upload_id}, {"$set": {"message": prog_message}}, upsert=True)                       
                         break
             # Upload the audio file to AssemblyAI in chunks
             response = requests.post(base_url + "/upload", headers=headers, data=upload_chunks())
@@ -262,7 +276,6 @@ def upload_audio_to_assemblyai(audio_path):
     response = requests.post(base_url + "/transcript", json=data, headers=headers)
     transcript_id = response.json()['id']
     polling_endpoint = f"https://api.assemblyai.com/v2/transcript/{transcript_id}"
-    progress = {"status": prog_status, "message": prog_message}  
     while True:
         transcription_result = requests.get(polling_endpoint, headers=headers).json()
         if transcription_result['status'] == 'completed':
@@ -273,14 +286,14 @@ def upload_audio_to_assemblyai(audio_path):
         elif transcription_result['status'] == 'error':
             raise RuntimeError(f"Transcription failed: {transcription_result['error']}")
 
-@app.route('/reset-progress', methods=['POST'])
+@app.route('/progress', methods=['GET', 'POST'])
 @cross_origin()  # Allow CORS for this route
-def reset_progress():
-    """Reset the current progress status."""
-    global prog_status, prog_message
-    prog_status = 0
-    prog_message = "Ready to upload"
-    return jsonify({"message": "Progress reset successfully"})
+def progress_status():
+    """Return the current progress status as JSON."""
+    progress = progress_collection.find_one({"_id": upload_id})
+    prog_status = int(progress['status']) if progress else 0
+    prog_message = progress['message'] if progress else "Preparing"
+    return jsonify({"message": prog_message, "status": prog_status})
 
 @app.route('/progress', methods=['GET', 'POST'])
 @cross_origin()  # Allow CORS for this route
