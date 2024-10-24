@@ -8,7 +8,6 @@ import gridfs
 import yt_dlp
 import json
 import uuid
-from dotenv import load_dotenv
 from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file, Response
 from werkzeug.utils import secure_filename
 from datetime import datetime
@@ -19,9 +18,6 @@ from flask_cors import CORS, cross_origin
 # Suppress specific warnings
 warnings.filterwarnings("ignore", category=SyntaxWarning)
 
-
-load_dotenv()  # Load environment variables from .env file
-api_key = os.getenv('API_KEY')
 
 # Create a Flask application instance
 app = Flask(__name__)
