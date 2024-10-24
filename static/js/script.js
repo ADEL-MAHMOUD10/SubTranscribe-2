@@ -7,7 +7,6 @@ window.addEventListener('DOMContentLoaded', (event) => {
     progressBar.style.width = '0%';
     progressBar.setAttribute('aria-valuenow', 0);
     progressBar.textContent = '0%';
-    messageElement.innerText = 'Ready to upload'; // You can set this to any initial message
 
     // Optionally reset the backend status
     resetProgressStatus();
@@ -71,7 +70,7 @@ const intervalId = setInterval(function() {
         })
         .catch(error => {
             console.error('Error fetching progress:', error);
-            document.getElementById('progressMessage').innerText = "Error fetching progress. Please try again.";
+            document.getElementById('progressMessage').innerText = "fetching progress. Please try again.";
         });
 }, 2000); // Poll every 2 seconds
 
