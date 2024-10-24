@@ -35,7 +35,7 @@ function resetProgressStatus() {
 
 // Continue with your interval function
 const intervalId = setInterval(function() {
-    fetch('https://subtranscribe.koyeb.app/progress', { method: 'POST' })
+    fetch('/progress', { method: 'POST' })
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok.');
