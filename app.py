@@ -8,19 +8,25 @@ import gridfs
 import yt_dlp
 import json
 import uuid
+from dotenv import load_dotenv
 from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file, Response
-from flask_cors import CORS, cross_origin
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from pymongo import MongoClient
 from tqdm import tqdm
+from flask_cors import CORS, cross_origin
 
 # Suppress specific warnings
 warnings.filterwarnings("ignore", category=SyntaxWarning)
 
+
+load_dotenv()  # Load environment variables from .env file
+api_key = os.getenv('API_KEY')
+
 # Create a Flask application instance
 app = Flask(__name__)
-cors = CORS(app, resources={r"/*": {"origins": "https://subtranscribe.koyeb.app"}})
+cors = CORS(app)
+# cors = CORS(app, resources={r"/*": {"origins": "https://subtranscribe.koyeb.app"}})
 
 # Set up MongoDB connection
 cluster = MongoClient("mongodb+srv://Adde:1234@cluster0.1xefj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
@@ -33,6 +39,7 @@ prog_status = 0
 prog_message = "Preparing"
 progress_data = {"_id": upload_id, "status": prog_status, "message": prog_message}
 progress_collection.update_one({"_id": upload_id}, {"$set": progress_data}, upsert=True)
+
 
 def Update_progress_db(transcript_id, status, message, Section, file_name=None, link=None):
     """Update the progress status in the MongoDB database."""
@@ -78,10 +85,7 @@ def allowed_file(filename):
 @app.route('/', methods=['GET', 'POST'])
 def upload_or_link():
     """Handle file uploads or links for transcription."""
-    global prog_status,prog_message,progress
     if request.method == 'GET':
-        prog_status = 0
-        prog_message = "Preparing"
         return render_template("index.html")
     
     if request.method == 'POST':
@@ -115,7 +119,6 @@ def upload_or_link():
                 # audio_id = upload_audio_to_gridfs(audio_file_path)
                 transcript_id = upload_audio_to_assemblyai(audio_file_path)  # Pass progress to the function
                 # Update_progress_db(transcript_id, status=100, message="completed", Section="Download page", file_name=filename)
-                progress = {"status": prog_status, "message": prog_message}
                 return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download subtitle
                 # Delete the audio file from GridFS after redirecting
                 # delete_audio_from_gridfs(audio_id)  # Call the delete function
@@ -199,7 +202,6 @@ def transcribe_from_link(link):
     data = {"audio_url": audio_url}  # Prepare data with audio URL
     response = requests.post(base_url + "/transcript", json=data, headers=headers)  # Make POST request to create a transcript
 
-    progress = {"status": prog_status, "message": prog_message}
     if response.status_code != 200:  # Check if the request was successful
         return f"Error creating transcript: {response.json()}"  # Return error message if not successful
 
@@ -229,6 +231,7 @@ def transcribe_from_link(link):
 
 #     return audio_id
 
+
 def upload_audio_to_assemblyai(audio_path):
     """Upload audio file to AssemblyAI for transcription with progress tracking."""
     headers = {"authorization": "5154fd34783d40ba9b1b27867b43ebaa"}
@@ -253,6 +256,7 @@ def upload_audio_to_assemblyai(audio_path):
                     prog_status = (bar.n / total_size) * 100
                     prog_message = f"processing... {prog_status:.2f}%"
 
+
                     # update status in Mongodb
                     progress_data = {"status": prog_status, "message": prog_message}
                     result = progress_collection.update_one(
@@ -260,6 +264,7 @@ def upload_audio_to_assemblyai(audio_path):
                         {"$set": progress_data},
                         upsert=True
                     )
+                    # print(f"MongoDB update result: {result.modified_count}")
 
                     if prog_status >= 100:
                         prog_message = "Please wait for a few seconds..."
@@ -283,6 +288,10 @@ def upload_audio_to_assemblyai(audio_path):
         elif transcription_result['status'] == 'error':
             raise RuntimeError(f"Transcription failed: {transcription_result['error']}")
 
+# @app.route("/uploadId", methods=['GET', 'POST'])
+# def UPload_id():
+#     return jsonify(upload_id)
+
 @app.route('/progress', methods=['GET', 'POST'])
 @cross_origin()  # Allow CORS for this route
 def progress_status():
@@ -291,7 +300,17 @@ def progress_status():
     prog_status = int(progress['status']) if progress else 0
     prog_message = progress['message'] if progress else "Preparing"
     return jsonify({"message": prog_message, "status": prog_status})
-       
+
+
+@app.route('/reset-progress', methods=['GET', 'POST'])
+@cross_origin()  # Allow CORS for this route
+def reset_progress():
+    """Reset the current progress status."""
+    global prog_status, prog_message
+    prog_status = 0
+    prog_message = "Ready to upload"
+    return jsonify({"message": "Progress reset successfully"})
+
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
     """Handle subtitle download based on the transcript ID."""
@@ -326,4 +345,4 @@ def serve_file(filename):
 
 # Main entry point
 if __name__ == "__main__":
-    app.run(host="0.0.0.0")
+    app.run(host="0.0.0.0",debug=True)
