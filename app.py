@@ -87,11 +87,15 @@ def upload_or_link():
     if request.method == 'POST':
         link = request.form.get('link')  # Get the link from the form
         if link:
+            prog_message = f"processing..."
+            progress_collection.update_one({"_id": upload_id}, {"$set": {"message": prog_message}}, upsert=True)
             transcript_id = transcribe_from_link(link)  # Transcribe from the provided link
             return transcript_id  
 
         file = request.files.get('file')  # Get the uploaded file
         if file and allowed_file(file.filename):
+            prog_message = f"processing..."
+            progress_collection.update_one({"_id": upload_id}, {"$set": {"message": prog_message}}, upsert=True)
             filename = secure_filename(file.filename)  # Secure the filename
             file_path = f'{filename}' 
             try:
@@ -147,7 +151,6 @@ def convert_video_to_audio(video_path):
 
 def transcribe_from_link(link):
     """Transcribe audio from a provided link."""
-    global prog_status, prog_message, progress
     ydl_opts = {
         'format': 'bestaudio/best',  # Select the best audio format
         'quiet': True,                # Suppress output messages
@@ -157,15 +160,12 @@ def transcribe_from_link(link):
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        global prog_status, prog_message
-        prog_status = 1.3
         info = ydl.extract_info(link)  # Extract information from the provided link
         audio_url = info.get('url', None)  # Get the audio URL
 
         # Get the size of the audio file using HEAD request
         response = requests.head(audio_url)
         total_size = int(response.headers.get('content-length', 0))  # Get total file size
-
         # Initialize progress bar
         with tqdm(total=total_size, unit='B', unit_scale=True, desc='Uploading', ncols=100) as bar:
             def upload_chunks():
@@ -181,8 +181,15 @@ def transcribe_from_link(link):
                         # Update the progress dictionary for frontend
                         prog_status = (bar.n / total_size) * 100
                         prog_message = f"Processing... {prog_status:.2f}%"
+                        progress_data = {"status": prog_status, "message": prog_message}
+                        result = progress_collection.update_one(
+                            {"_id": upload_id},
+                            {"$set": progress_data},
+                            upsert=True
+                        )
                         if prog_status >= 100:
                             prog_message = "Please wait for a few seconds..."
+                            progress_collection.update_one({"_id": upload_id}, {"$set": {"message": prog_message}}, upsert=True)
                             break
 
             # Upload the audio file to AssemblyAI in chunks
@@ -252,7 +259,6 @@ def upload_audio_to_assemblyai(audio_path):
                     prog_status = (bar.n / total_size) * 100
                     prog_message = f"processing... {prog_status:.2f}%"
 
-
                     # update status in Mongodb
                     progress_data = {"status": prog_status, "message": prog_message}
                     result = progress_collection.update_one(
@@ -288,14 +294,23 @@ def upload_audio_to_assemblyai(audio_path):
 # def UPload_id():
 #     return jsonify(upload_id)
 
+@app.route('/reset-progress', methods=['GET', 'POST'])
+@cross_origin()  # Allow CORS for this route
+def reset_progress():
+    """Reset the current progress status."""
+    global prog_status, prog_message , upload_id
+    upload_id = str(uuid.uuid4())
+    return jsonify({"message": "Progress reset successfully"})
+
 @app.route('/progress', methods=['GET', 'POST'])
 @cross_origin()  # Allow CORS for this route
-def progress_status(upload_id):
+def progress_status():
     """Return the current progress status as JSON."""
-    progress = progress_collection.find_one({"_id": upload_id})
-    prog_status = int(progress['status']) if progress else 0
-    prog_message = progress['message'] if progress else "Preparing"
-    return jsonify({"message": prog_message, "status": prog_status})
+    progress = progress_collection.find_one({"_id": upload_id})  # استخدام upload_id
+    if progress is None:
+        return jsonify({"message": "No progress found", "status": 0})  # إذا لم يتم العثور على تقدم
+    else:
+        return jsonify(progress) 
 
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
