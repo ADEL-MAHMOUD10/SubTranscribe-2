@@ -253,16 +253,14 @@ def upload_audio_to_assemblyai(audio_path):
                     # Update the progress dictionary for frontend
                     prog_status = (bar.n / total_size) * 100
                     prog_message = f"processing... {prog_status:.2f}%"
-                    # print(f"Updated progress: {prog_status}")  # تحقق من القيمة
 
-                    # تحديث الحالة في MongoDB
+                    # update status in Mongodb
                     progress_data = {"status": prog_status, "message": prog_message}
                     result = progress_collection.update_one(
                         {"_id": upload_id},
                         {"$set": progress_data},
                         upsert=True
                     )
-                    # print(f"MongoDB update result: {result.modified_count}")
 
                     if prog_status >= 100:
                         prog_message = "Please wait for a few seconds..."
