@@ -290,22 +290,12 @@ def upload_audio_to_assemblyai(audio_path):
 
 @app.route('/progress', methods=['GET', 'POST'])
 @cross_origin()  # Allow CORS for this route
-def progress_status():
+def progress_status(upload_id):
     """Return the current progress status as JSON."""
     progress = progress_collection.find_one({"_id": upload_id})
     prog_status = int(progress['status']) if progress else 0
     prog_message = progress['message'] if progress else "Preparing"
     return jsonify({"message": prog_message, "status": prog_status})
-
-
-@app.route('/reset-progress', methods=['GET', 'POST'])
-@cross_origin()  # Allow CORS for this route
-def reset_progress():
-    """Reset the current progress status."""
-    global prog_status, prog_message
-    prog_status = 0
-    prog_message = "Ready to upload"
-    return jsonify({"message": "Progress reset successfully"})
 
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
