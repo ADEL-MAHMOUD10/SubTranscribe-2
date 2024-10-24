@@ -14,7 +14,7 @@ window.addEventListener('DOMContentLoaded', (event) => {
 });
 
 function resetProgressStatus() {
-    fetch('/reset-progress', { method: 'POST',
+    fetch('/reset-progress', { method: 'GET',
     credentials: 'include',
     headers: {
         'Content-Type': 'application/json'
@@ -35,7 +35,7 @@ function resetProgressStatus() {
 
 // Continue with your interval function
 const intervalId = setInterval(function() {
-    fetch('/progress', { method: 'POST' })
+    fetch('/progress', { method: 'GET' })
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok.');
