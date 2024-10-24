@@ -293,13 +293,6 @@ def progress_status():
     prog_message = progress['message'] if progress else "Preparing"
     return jsonify({"message": prog_message, "status": prog_status})
 
-@app.route('/progress', methods=['GET', 'POST'])
-@cross_origin()  # Allow CORS for this route
-def progress_status():
-    """Return the current progress status as JSON."""
-    global prog_status, prog_message 
-    return jsonify({ "message": prog_message, "status": int(prog_status)})
-       
        
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
