@@ -34,7 +34,6 @@ prog_message = "Preparing"
 progress_data = {"_id": upload_id, "status": prog_status, "message": prog_message}
 progress_collection.update_one({"_id": upload_id}, {"$set": progress_data}, upsert=True)
 
-
 def Update_progress_db(transcript_id, status, message, Section, file_name=None, link=None):
     """Update the progress status in the MongoDB database."""
     collection = db["Main"]  # Specify the collection name
@@ -292,7 +291,6 @@ def progress_status():
     prog_status = int(progress['status']) if progress else 0
     prog_message = progress['message'] if progress else "Preparing"
     return jsonify({"message": prog_message, "status": prog_status})
-
        
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
