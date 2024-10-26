@@ -13,7 +13,7 @@ window.addEventListener('DOMContentLoaded', (event) => {
 });
 
 function resetProgressStatus() {
-    fetch('/reset-progress', { method: 'POST' })
+    fetch('https://subtranscribe.koyeb.app/reset-progress', { method: 'POST' })
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok.');
