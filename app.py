@@ -188,8 +188,10 @@ def transcribe_from_link(link):
                             upsert=True
                         )
                         if prog_status >= 100:
+                            prog_status = 100
                             prog_message = "Please wait for a few seconds..."
-                            progress_collection.update_one({"_id": upload_id}, {"$set": {"message": prog_message}}, upsert=True)
+                            progress_data = {"status": prog_status, "message": prog_message}
+                            progress_collection.update_one({"_id": upload_id}, {"$set": progress_data}, upsert=True)
                             break
 
             # Upload the audio file to AssemblyAI in chunks
