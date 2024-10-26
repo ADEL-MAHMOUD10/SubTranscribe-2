@@ -310,11 +310,9 @@ def progress_status():
 def reset_progress():
     """Reset the current progress status."""
     global prog_status, prog_message , upload_id
-    upload_id = str(uuid.uuid4())
     prog_status = 0
     prog_message = "Initializing"
     progress_data = {"_id": upload_id, "status": prog_status, "message": prog_message}
-    progress_collection.update_one({"_id": upload_id}, {"$set": progress_data}, upsert=True)
     return jsonify(progress_data)
 
 
