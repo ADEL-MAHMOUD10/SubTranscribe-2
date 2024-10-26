@@ -10,10 +10,10 @@ import json
 import uuid
 from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file, Response
 from werkzeug.utils import secure_filename
+from flask_cors import CORS, cross_origin
 from datetime import datetime
 from pymongo import MongoClient
 from tqdm import tqdm
-from flask_cors import CORS, cross_origin
 
 # Suppress specific warnings
 warnings.filterwarnings("ignore", category=SyntaxWarning)
@@ -32,7 +32,7 @@ progress_collection = db['progress']  #(Collection)
 
 upload_id = str(uuid.uuid4())
 prog_status = 0
-prog_message = "Preparing"
+prog_message = "Initializing"
 progress_data = {"_id": upload_id, "status": prog_status, "message": prog_message}
 progress_collection.update_one({"_id": upload_id}, {"$set": progress_data}, upsert=True)
 
@@ -68,10 +68,10 @@ def Create_subtitle_to_db(subtitle_path):
         subtitle_id = fs.put(subtitle_file, filename=os.path.basename(subtitle_path), content_type='SRT/VTT')
     return subtitle_id
 
-def delete_audio_from_gridfs(audio_id):
-    """Delete audio file document from GridFS using audio ID."""
-    fs.delete(audio_id)  # Delete the file from GridFS
-    print(f"Audio file with ID {audio_id} deleted successfully.")
+# def delete_audio_from_gridfs(audio_id):
+#     """Delete audio file document from GridFS using audio ID."""
+#     fs.delete(audio_id)  # Delete the file from GridFS
+#     print(f"Audio file with ID {audio_id} deleted successfully.")
 
 def allowed_file(filename):
     """Check if the uploaded file has an allowed extension."""
@@ -172,7 +172,7 @@ def transcribe_from_link(link):
                 global prog_status, prog_message
                 # Stream the audio file in chunks
                 with requests.get(audio_url, stream=True) as f:
-                    for chunk in f.iter_content(chunk_size=450000):  # Read 85KB chunks
+                    for chunk in f:  # Read 85KB chunks
                         if not chunk:
                             break
                         yield chunk
@@ -187,6 +187,7 @@ def transcribe_from_link(link):
                             {"$set": progress_data},
                             upsert=True
                         )
+
                         if prog_status >= 100:
                             prog_message = "Please wait for a few seconds..."
                             progress_collection.update_one({"_id": upload_id}, {"$set": {"message": prog_message}}, upsert=True)
@@ -290,7 +291,7 @@ def upload_audio_to_assemblyai(audio_path):
             return transcript_id
         elif transcription_result['status'] == 'error':
             raise RuntimeError(f"Transcription failed: {transcription_result['error']}")
-
+        
 @app.route('/progress', methods=['GET', 'POST'])
 @cross_origin()  # Allow CORS for this route
 def progress_status():
@@ -300,8 +301,12 @@ def progress_status():
     if progress is None:
         return jsonify({"message": "No progress found", "status": 0}) 
     else:
-        return jsonify(progress_collection.find_one({"_id": upload_id})) 
-
+        return jsonify({
+            "_id": upload_id, 
+            "message": progress.get("message"),
+            "status": progress.get("status")
+        })
+    
 @app.route('/reset-progress', methods=['GET', 'POST'])
 @cross_origin()  # Allow CORS for this route
 def reset_progress():
@@ -309,6 +314,7 @@ def reset_progress():
     global upload_id
     upload_id = str(uuid.uuid4())
     return jsonify({"_id": upload_id, "message": "Progress reset successfully","status": 0})
+
 
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
