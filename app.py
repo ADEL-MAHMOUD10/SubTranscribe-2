@@ -21,8 +21,8 @@ warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 # Create a Flask application instance
 app = Flask(__name__)
-# cors = CORS(app)
-cors = CORS(app, resources={r"/*": {"origins": "https://subtranscribe.koyeb.app"}})
+cors = CORS(app)
+# cors = CORS(app, resources={r"/*": {"origins": "https://subtranscribe.koyeb.app"}})
 
 # Set up MongoDB connection
 cluster = MongoClient("mongodb+srv://Adde:1234@cluster0.1xefj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
@@ -68,10 +68,10 @@ def Create_subtitle_to_db(subtitle_path):
         subtitle_id = fs.put(subtitle_file, filename=os.path.basename(subtitle_path), content_type='SRT/VTT')
     return subtitle_id
 
-# def delete_audio_from_gridfs(audio_id):
-#     """Delete audio file document from GridFS using audio ID."""
-#     fs.delete(audio_id)  # Delete the file from GridFS
-#     print(f"Audio file with ID {audio_id} deleted successfully.")
+def delete_audio_from_gridfs(audio_id):
+    """Delete audio file document from GridFS using audio ID."""
+    fs.delete(audio_id)  # Delete the file from GridFS
+    print(f"Audio file with ID {audio_id} deleted successfully.")
 
 def allowed_file(filename):
     """Check if the uploaded file has an allowed extension."""
@@ -188,10 +188,8 @@ def transcribe_from_link(link):
                             upsert=True
                         )
                         if prog_status >= 100:
-                            prog_status = 100
                             prog_message = "Please wait for a few seconds..."
-                            progress_data = {"status": prog_status, "message": prog_message}
-                            progress_collection.update_one({"_id": upload_id}, {"$set": progress_data}, upsert=True)
+                            progress_collection.update_one({"_id": upload_id}, {"$set": {"message": prog_message}}, upsert=True)
                             break
 
             # Upload the audio file to AssemblyAI in chunks
@@ -315,8 +313,8 @@ def reset_progress():
     prog_status = 0
     prog_message = "Initializing"
     progress_data = {"_id": upload_id, "status": prog_status, "message": prog_message}
+    progress_collection.update_one({"_id": upload_id}, {"$set": progress_data}, upsert=True)
     return jsonify(progress_data)
-
 
 
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
