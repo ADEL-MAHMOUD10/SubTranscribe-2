@@ -298,8 +298,6 @@ def progress_status():
     """Return the current progress status as JSON."""
     global upload_id
     progress = progress_collection.find_one({"_id": upload_id})
-    sta = progress.get('status')
-    print(f"status: {sta}") 
     if progress is None:
         return jsonify({"_id": upload_id, 
             "message": progress.get("message"),
