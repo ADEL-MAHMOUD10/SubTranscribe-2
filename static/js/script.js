@@ -31,7 +31,7 @@ function resetProgressStatus() {
 
 // Continue with your interval function
 const intervalId = setInterval(function() {
-    fetch('/progress', { method: 'GET',
+    fetch('https://subtranscribe.koyeb.app/progress', { method: 'GET',
         credentials: 'include',
         headers: {
             'Content-Type': 'application/json'
