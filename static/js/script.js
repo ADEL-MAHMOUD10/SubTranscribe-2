@@ -7,6 +7,7 @@ window.addEventListener('DOMContentLoaded', (event) => {
     progressBar.style.width = '0%';
     progressBar.setAttribute('aria-valuenow', 0);
     progressBar.textContent = '0%';
+    messageElement.innerText = 'Ready to upload'; // You can set this to any initial message
 
     // Optionally reset the backend status
     resetProgressStatus();
@@ -27,7 +28,6 @@ function resetProgressStatus() {
             console.error('Error resetting progress:', error);
         });
 }
-
 
 // Continue with your interval function
 const intervalId = setInterval(function() {
@@ -70,9 +70,9 @@ const intervalId = setInterval(function() {
         })
         .catch(error => {
             console.error('Error fetching progress:', error);
-            document.getElementById('progressMessage').innerText = "fetching progress. Please try again.";
+            document.getElementById('progressMessage').innerText = "Error fetching progress. Please try again.";
         });
-}, 500); // Poll every 0.5 seconds
+}, 3000); // Poll every 3 seconds
 
 // Display selected file name dynamically
 function showFileName() {
