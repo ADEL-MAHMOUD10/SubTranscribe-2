@@ -14,7 +14,7 @@ window.addEventListener('DOMContentLoaded', (event) => {
 });
 
 function resetProgressStatus() {
-    fetch('https://subtranscribe.koyeb.app/reset-progress', { method: 'POST' })
+    fetch('/reset-progress', { method: 'GET' })
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok.');
@@ -30,50 +30,53 @@ function resetProgressStatus() {
 }
 
 // Continue with your interval function
-const intervalId = setInterval(function() {
-    fetch('https://subtranscribe.koyeb.app/progress', { method: 'POST',
+const intervalId = setInterval(async function () {
+    await fetch('/progress', {
+        method: 'GET',
         credentials: 'include',
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
-        } })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok.');
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log(data);
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok.');
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log(data);
 
-            const progressPercentage = typeof data.status === 'number' ? data.status : parseFloat(data.status) || 0;
+        const progressPercentage = typeof data.status === 'number' ? data.status : parseFloat(data.status) || 0;
 
-            // Update the progress bar.
-            const progressBar = document.getElementById('progressBar');
-            progressBar.style.width = `${progressPercentage}%`;
-            progressBar.style.transition = 'width 0.5s ease';
-            progressBar.setAttribute('aria-valuenow', progressPercentage);
-            progressBar.textContent = `${progressPercentage.toFixed(2)}%`;
+        // Update the progress bar.
+        const progressBar = document.getElementById('progressBar');
+        progressBar.style.width = `${progressPercentage}%`;
+        progressBar.style.transition = 'width 0.5s ease';
+        progressBar.setAttribute('aria-valuenow', progressPercentage);
+        progressBar.textContent = `${progressPercentage.toFixed(2)}%`;
 
-            const messageElement = document.getElementById('progressMessage');
-            messageElement.innerText = data.message;
+        const messageElement = document.getElementById('progressMessage');
+        messageElement.innerText = data.message;
 
-            // Change color based on progress.
-            if (progressPercentage === 100) {
-                progressBar.style.backgroundColor = 'green'; // Success color
-                messageElement.textContent = "Please wait for a few seconds...";
-                clearInterval(intervalId);
-            } else if (progressPercentage >= 50) {
-                progressBar.style.backgroundColor = 'orange'; // Warning color
-            } else {
-                progressBar.style.backgroundColor = ''; // Default color
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching progress:', error);
-            document.getElementById('progressMessage').innerText = "Error fetching progress. Please try again.";
-        });
-}, 4000); // Poll every 4 seconds
+        // Change color based on progress.
+        if (progressPercentage === 100) {
+            progressBar.style.backgroundColor = 'green'; // Success color
+            messageElement.textContent = "Please wait for a few seconds...";
+            clearInterval(intervalId);
+            // Optionally trigger additional completion logic here
+        } else if (progressPercentage >= 50) {
+            progressBar.style.backgroundColor = 'orange'; // Warning color
+        } else {
+            progressBar.style.backgroundColor = 'blue'; // Default color
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching progress:', error);
+        document.getElementById('progressMessage').innerText = "Error fetching progress. Please try again.";
+    });
+}, 2500); // Poll every 2.5 seconds
 
 // Display selected file name dynamically
 function showFileName() {
