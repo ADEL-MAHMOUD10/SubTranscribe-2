@@ -13,7 +13,7 @@ window.addEventListener('DOMContentLoaded', (event) => {
 });
 
 function resetProgressStatus() {
-    fetch('https://subtranscribe.koyeb.app/reset-progress', { method: 'POST' })
+    fetch('https://subtranscribe.koyeb.app/reset-progress', { method: 'get' })
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok.');
@@ -31,7 +31,7 @@ function resetProgressStatus() {
 // Continue with your interval function
 const intervalId = setInterval(function () {
     fetch('https://subtranscribe.koyeb.app/progress', {
-        method: 'POST',
+        method: 'get',
         credentials: 'include',
         headers: {
             'Accept': 'application/json',
@@ -75,7 +75,7 @@ const intervalId = setInterval(function () {
         console.error('Error fetching progress:', error);
         document.getElementById('progressMessage').innerText = "Error fetching progress. Please try again.";
     });
-}, 4000); // Poll every 4 seconds
+}, 1000); // Poll every 1 seconds
 
 // Display selected file name dynamically
 function showFileName() {
