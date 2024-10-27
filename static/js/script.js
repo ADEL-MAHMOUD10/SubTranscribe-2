@@ -7,14 +7,13 @@ window.addEventListener('DOMContentLoaded', (event) => {
     progressBar.style.width = '0%';
     progressBar.setAttribute('aria-valuenow', 0);
     progressBar.textContent = '0%';
-    messageElement.innerText = 'Ready to upload'; // You can set this to any initial message
 
     // Optionally reset the backend status
     resetProgressStatus();
 });
 
 function resetProgressStatus() {
-    fetch('https://subtranscribe.koyeb.app/reset-progress', { method: 'GET' })
+    fetch('https://subtranscribe.koyeb.app/reset-progress', { method: 'POST' })
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok.');
@@ -30,9 +29,9 @@ function resetProgressStatus() {
 }
 
 // Continue with your interval function
-const intervalId = setInterval(async function () {
-    await fetch('https://subtranscribe.koyeb.app/progress', {
-        method: 'GET',
+const intervalId = setInterval(function () {
+    fetch('https://subtranscribe.koyeb.app/progress', {
+        method: 'POST',
         credentials: 'include',
         headers: {
             'Accept': 'application/json',
@@ -76,7 +75,7 @@ const intervalId = setInterval(async function () {
         console.error('Error fetching progress:', error);
         document.getElementById('progressMessage').innerText = "Error fetching progress. Please try again.";
     });
-}, 2500); // Poll every 2.5 seconds
+}, 4000); // Poll every 4 seconds
 
 // Display selected file name dynamically
 function showFileName() {
