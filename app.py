@@ -220,6 +220,11 @@ def transcribe_from_link(link):
 
                         # Update the progress dictionary for frontend
                         prog_status = (bar.n / total_size) * 100
+                        progress_data = {
+                            "status": prog_status,
+                            "message": f"Processing... {prog_status:.2f}%"
+                        }
+                        requests.post("https://subtranscribe.koyeb.app/progress", json=progress_data)
 
                         # Update every 5% increment
                         if int(prog_status) % 5 == 0 and int(prog_status) != previous_status:
@@ -299,6 +304,11 @@ def upload_audio_to_assemblyai(audio_path):
 
                     # Update the progress dictionary for frontend
                     prog_status = (bar.n / total_size) * 100 
+                    progress_data = {
+                        "status": prog_status,
+                        "message": f"Processing... {prog_status:.2f}%"
+                    }
+                    requests.post("https://subtranscribe.koyeb.app/progress", json=progress_data)
 
                     # Update every 5% increment
                     if int(prog_status) % 5 == 0 and int(prog_status) != previous_status:
