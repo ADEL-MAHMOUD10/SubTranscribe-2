@@ -8,11 +8,13 @@ import gridfs
 import yt_dlp
 import json
 import uuid
+import firebase_admin
 from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file, Response
 from werkzeug.utils import secure_filename
 from flask_cors import CORS, cross_origin
-from datetime import datetime
+from firebase_admin import db , credentials
 from pymongo import MongoClient
+from datetime import datetime
 from tqdm import tqdm
 
 # Suppress specific warnings
@@ -24,12 +26,22 @@ app = Flask(__name__)
 cors = CORS(app)
 # cors = CORS(app, resources={r"/*": {"origins": "https://subtranscribe.koyeb.app"}})
 
+
 # Set up MongoDB connection
 cluster = MongoClient("mongodb+srv://Adde:1234@cluster0.1xefj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
-db = cluster["Datedb"]  # Specify the database name
-fs = gridfs.GridFS(db)  # Create a GridFS instance for file storage
-progress_collection = db['progress']  #(Collection)
-upload_id = ''
+dbase = cluster["Datedb"]  # Specify the database name
+fs = gridfs.GridFS(dbase)  # Create a GridFS instance for file storage
+progress_collection = dbase['progress']  #(Collection)
+upload_id = None
+
+# Set up Firebase connection
+# hjHgGvAIFrdt0XZMPafw1ClsdloSrVQ2ZRW0pnBI
+cred = credentials.Certificate("subtranscribe.json")
+firebase_admin.initialize_app(cred,{
+    "databaseURL":"https://subtranscribe-default-rtdb.europe-west1.firebasedatabase.app/"
+    })
+
+
 def generate_new_uuid():
     """Generate a new UUID for each page load or refresh."""
     global upload_id
@@ -40,17 +52,15 @@ def generate_new_uuid():
 
 def update_progress_bar(uid,status,message):
     """Update the progress bar in the MongoDB database."""
-    global progress_bar
-    progress_collection = db["progress"]  # Specify the collection name
-    # Prepare the post data
-    progress_data = {"status": round(status, 2), "message": message}
-    progress_bar = progress_collection.update_one({"_id": uid}, {"$set": progress_data}, upsert=True)
-    
-    return progress_bar
+    ref = db.reference(f'/{uid}')
+    ref.update({
+        'status': round(status, 2),
+        'message': message
+    })
 
 def Update_progress_db(transcript_id, status, message, Section, file_name=None, link=None):
     """Update the progress status in the MongoDB database."""
-    collection = db["Main"]  # Specify the collection name
+    collection = dbase["Main"]  # Specify the collection name
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Get the current time
 
     # Prepare the post data
@@ -199,7 +209,6 @@ def transcribe_from_link(link):
                             update_progress_bar(uid=upload_id, status=prog_status, message=prog_message)
                             previous_status = int(prog_status)
                             continue
-                            
                         if prog_status >= 100:
                             prog_message = "Please wait for a few seconds..."
                             update_progress_bar(uid=upload_id,status=prog_status,message=prog_message)
@@ -307,14 +316,12 @@ def upload_audio_to_assemblyai(audio_path):
 def progress_status():
     """Return the current progress status as JSON."""
     global upload_id
-    progress = progress_collection.find_one({
-        "_id": upload_id
-    })
-    if progress is None:
-        return jsonify({"status": 0, "message": "Ready to upload"}) 
-    else:
-        progress.pop("_id", None)
-        return jsonify(progress) 
+    ref = db.reference(f'/{upload_id}')
+    progress = ref.get()
+    if progress:
+        progress.pop("id", None) 
+        return jsonify(progress)
+    return jsonify({"status": 0, "message": "Ready to upload"})
 
 @app.route('/reset-progress', methods=['GET', 'POST'])
 @cross_origin()  # Allow CORS for this route
