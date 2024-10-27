@@ -30,12 +30,13 @@ db = cluster["Datedb"]  # Specify the database name
 fs = gridfs.GridFS(db)  # Create a GridFS instance for file storage
 progress_collection = db['progress']  #(Collection)
 
-upload_id = str(uuid.uuid4())
-prog_status = 0
-prog_message = "Initializing"
-progress_data = {"_id": upload_id, "status": prog_status, "message": prog_message}
-progress_collection.update_one({"_id": upload_id}, {"$set": progress_data}, upsert=True)
-
+def generate_new_uuid():
+    """Generate a new UUID for each page load or refresh."""
+    global upload_id, progress_collection
+    upload_id = str(uuid.uuid4())
+    progress_data = {"_id": upload_id, "status": 0, "message": "Initializing"}
+    progress_collection.update_one({"_id": upload_id}, {"$set": progress_data}, upsert=True)
+    return progress_data
 
 def Update_progress_db(transcript_id, status, message, Section, file_name=None, link=None):
     """Update the progress status in the MongoDB database."""
@@ -309,13 +310,8 @@ def progress_status():
 @cross_origin()  # Allow CORS for this route
 def reset_progress():
     """Reset the current progress status."""
-    global prog_status, prog_message , upload_id
-    prog_status = 0
-    prog_message = "Initializing"
-    progress_data = {"_id": upload_id, "status": prog_status, "message": prog_message}
-    progress_collection.update_one({"_id": upload_id}, {"$set": progress_data}, upsert=True)
+    progress_data = generate_new_uuid()
     return jsonify(progress_data)
-
 
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
