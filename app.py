@@ -26,7 +26,6 @@ app = Flask(__name__)
 cors = CORS(app)
 # cors = CORS(app, resources={r"/*": {"origins": "https://subtranscribe.koyeb.app"}})
 
-
 # Set up MongoDB connection
 cluster = MongoClient("mongodb+srv://Adde:1234@cluster0.1xefj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 dbase = cluster["Datedb"]  # Specify the database name
