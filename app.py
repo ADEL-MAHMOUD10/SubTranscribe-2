@@ -10,32 +10,51 @@ import json
 import uuid
 import firebase_admin
 from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file, Response
+from firebase_admin import db , credentials
 from werkzeug.utils import secure_filename
 from flask_cors import CORS, cross_origin
-from firebase_admin import db , credentials
 from pymongo import MongoClient
+from dotenv import load_dotenv
 from datetime import datetime
 from tqdm import tqdm
 
 # Suppress specific warnings
 warnings.filterwarnings("ignore", category=SyntaxWarning)
 
+# set token 
+load_dotenv()
+
+TOKEN_ONE = os.getenv("M_api_key")
+TOKEN_THREE = os.getenv("A_api_key")
+
+firebase_credentials = {
+    "type": os.getenv("FIREBASE_TYPE"),
+    "project_id": os.getenv("FIREBASE_PROJECT_ID"),
+    "private_key_id": os.getenv("FIREBASE_PRIVATE_KEY_ID"),
+    "private_key": os.getenv("FIREBASE_PRIVATE_KEY").replace("\\n", "\n"),
+    "client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),
+    "client_id": os.getenv("FIREBASE_CLIENT_ID"),
+    "auth_uri": os.getenv("FIREBASE_AUTH_URI"),
+    "token_uri": os.getenv("FIREBASE_TOKEN_URI"),
+    "auth_provider_x509_cert_url": os.getenv("FIREBASE_AUTH_PROVIDER_CERT_URL"),
+    "client_x509_cert_url": os.getenv("FIREBASE_CLIENT_CERT_URL")
+}
 
 # Create a Flask application instance
 app = Flask(__name__)
 cors = CORS(app)
 # cors = CORS(app, resources={r"/*": {"origins": "https://subtranscribe.koyeb.app"}})
 
+
 # Set up MongoDB connection
-cluster = MongoClient("mongodb+srv://Adde:1234@cluster0.1xefj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+cluster = MongoClient(TOKEN_ONE)
 dbase = cluster["Datedb"]  # Specify the database name
 fs = gridfs.GridFS(dbase)  # Create a GridFS instance for file storage
 progress_collection = dbase['progress']  #(Collection)
 upload_id = None
 
 # Set up Firebase connection
-# hjHgGvAIFrdt0XZMPafw1ClsdloSrVQ2ZRW0pnBI
-cred = credentials.Certificate("subtranscribe.json")
+cred = credentials.Certificate(firebase_credentials)
 firebase_admin.initialize_app(cred,{
     "databaseURL":"https://subtranscribe-default-rtdb.europe-west1.firebasedatabase.app/"
     })
@@ -215,7 +234,7 @@ def transcribe_from_link(link):
 
             # Upload the audio file to AssemblyAI in chunks
             base_url = "https://api.assemblyai.com/v2"
-            headers = {"authorization": "5154fd34783d40ba9b1b27867b43ebaa"}  # Set authorization header
+            headers = {"authorization": TOKEN_THREE}  # Set authorization header
             response = requests.post(base_url + "/upload", headers=headers, data=upload_chunks())
 
             # Check upload response
@@ -258,7 +277,7 @@ def transcribe_from_link(link):
 
 def upload_audio_to_assemblyai(audio_path):
     """Upload audio file to AssemblyAI for transcription with progress tracking."""
-    headers = {"authorization": "5154fd34783d40ba9b1b27867b43ebaa"}
+    headers = {"authorization": TOKEN_THREE}
     base_url = "https://api.assemblyai.com/v2"
 
     total_size = os.path.getsize(audio_path)  # Get the file size
@@ -318,7 +337,7 @@ def progress_status():
     ref = db.reference(f'/{upload_id}')
     progress = ref.get()
     if progress:
-        progress.pop("id", None) 
+        progress.pop("id", None)  
         return jsonify(progress)
     return jsonify({"status": 0, "message": "Ready to upload"})
 
@@ -335,7 +354,7 @@ def download_subtitle(transcript_id):
 
     if request.method == 'POST':
         file_format = request.form['format']  # Get the requested file format
-        headers = {"authorization": "5154fd34783d40ba9b1b27867b43ebaa"}
+        headers = {"authorization": TOKEN_THREE}
         url = f"https://api.assemblyai.com/v2/transcript/{transcript_id}/{file_format}"
 
         response = requests.get(url, headers=headers)  # Request the subtitle file
