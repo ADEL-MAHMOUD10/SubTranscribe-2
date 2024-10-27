@@ -29,7 +29,7 @@ cluster = MongoClient("mongodb+srv://Adde:1234@cluster0.1xefj.mongodb.net/?retry
 db = cluster["Datedb"]  # Specify the database name
 fs = gridfs.GridFS(db)  # Create a GridFS instance for file storage
 progress_collection = db['progress']  #(Collection)
-
+upload_id = ''
 def generate_new_uuid():
     """Generate a new UUID for each page load or refresh."""
     global upload_id
@@ -43,7 +43,7 @@ def update_progress_bar(uid,status,message):
     global progress_bar
     progress_collection = db["progress"]  # Specify the collection name
     # Prepare the post data
-    progress_data = {"_id": uid, "status": status, "message": message}
+    progress_data = {"status": round(status, 2), "message": message}
     progress_bar = progress_collection.update_one({"_id": uid}, {"$set": progress_data}, upsert=True)
     
     return progress_bar
@@ -270,14 +270,14 @@ def upload_audio_to_assemblyai(audio_path):
                     
 
                     # Update the progress dictionary for frontend
-                    prog_status = (bar.n / total_size) * 100
+                    prog_status = (bar.n / total_size) * 100 
 
                     # Update every 5% increment
                     if int(prog_status) % 5 == 0 and int(prog_status) != previous_status:
                         prog_message = f"Processing... {prog_status:.2f}%"
                         update_progress_bar(uid=upload_id, status=prog_status, message=prog_message)
                         previous_status = int(prog_status)
-                        print(f"pre: {previous_status}")
+
                     if prog_status >= 100:
                         prog_message = "Please wait for a few seconds..."
                         update_progress_bar(uid=upload_id,status=prog_status,message=prog_message)                       
@@ -308,7 +308,6 @@ def progress_status():
     progress = progress_collection.find_one({
         "_id": upload_id
     })
-    print(f'progress: {progress}')
     if progress is None:
         return jsonify({"status": 0, "message": "Ready to upload"}) 
     else:
