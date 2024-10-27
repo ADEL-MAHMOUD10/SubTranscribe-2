@@ -32,11 +32,21 @@ progress_collection = db['progress']  #(Collection)
 
 def generate_new_uuid():
     """Generate a new UUID for each page load or refresh."""
-    global upload_id, progress_collection
+    global upload_id
     upload_id = str(uuid.uuid4())
     progress_data = {"_id": upload_id, "status": 0, "message": "Initializing"}
     progress_collection.update_one({"_id": upload_id}, {"$set": progress_data}, upsert=True)
     return progress_data
+
+def update_progress_bar(uid,status,message):
+    """Update the progress bar in the MongoDB database."""
+    global progress_bar
+    progress_collection = db["progress"]  # Specify the collection name
+    # Prepare the post data
+    progress_data = {"_id": uid, "status": status, "message": message}
+    progress_bar = progress_collection.update_one({"_id": uid}, {"$set": progress_data}, upsert=True)
+    
+    return progress_bar
 
 def Update_progress_db(transcript_id, status, message, Section, file_name=None, link=None):
     """Update the progress status in the MongoDB database."""
@@ -89,14 +99,12 @@ def upload_or_link():
         link = request.form.get('link')  # Get the link from the form
         if link:
             prog_message = f"processing..."
-            progress_collection.update_one({"_id": upload_id}, {"$set": {"message": prog_message}}, upsert=True)
             transcript_id = transcribe_from_link(link)  # Transcribe from the provided link
             return transcript_id  
 
         file = request.files.get('file')  # Get the uploaded file
         if file and allowed_file(file.filename):
             prog_message = f"processing..."
-            progress_collection.update_one({"_id": upload_id}, {"$set": {"message": prog_message}}, upsert=True)
             filename = secure_filename(file.filename)  # Secure the filename
             file_path = f'{filename}' 
             try:
@@ -172,25 +180,28 @@ def transcribe_from_link(link):
             def upload_chunks():
                 global prog_status, prog_message
                 # Stream the audio file in chunks
+
+                previous_status = -1  # Track the last updated progress
                 with requests.get(audio_url, stream=True) as f:
                     for chunk in f.iter_content(chunk_size=450000):  # Read 450KB chunks
                         if not chunk:
                             break
                         yield chunk
                         bar.update(len(chunk))  # Update progress bar
-                        
+
+
                         # Update the progress dictionary for frontend
                         prog_status = (bar.n / total_size) * 100
-                        prog_message = f"Processing... {prog_status:.2f}%"
-                        progress_data = {"status": prog_status, "message": prog_message}
-                        result = progress_collection.update_one(
-                            {"_id": upload_id},
-                            {"$set": progress_data},
-                            upsert=True
-                        )
+
+                        # Update every 5% increment
+                        if int(prog_status) % 5 == 0 and int(prog_status) != previous_status:
+                            prog_message = f"Processing... {prog_status:.2f}%"
+                            update_progress_bar(uid=upload_id, status=prog_status, message=prog_message)
+                            previous_status = int(prog_status)
+
                         if prog_status >= 100:
                             prog_message = "Please wait for a few seconds..."
-                            progress_collection.update_one({"_id": upload_id}, {"$set": {"message": prog_message}}, upsert=True)
+                            update_progress_bar(uid=upload_id,status=prog_status,message=prog_message)
                             break
 
             # Upload the audio file to AssemblyAI in chunks
@@ -249,6 +260,7 @@ def upload_audio_to_assemblyai(audio_path):
         with tqdm(total=total_size, unit='B', unit_scale=True, desc='Uploading', ncols=100) as bar:
             def upload_chunks():
                 global prog_status,prog_message
+                previous_status = -1  # Track the last updated progress
                 while True:
                     chunk = f.read(450000)  # Read 450KB chunks
                     if not chunk:
@@ -256,23 +268,19 @@ def upload_audio_to_assemblyai(audio_path):
                     yield chunk
                     bar.update(len(chunk))  # Update progress bar
                     
+
                     # Update the progress dictionary for frontend
-                    global prog_status,prog_message,progress_data
                     prog_status = (bar.n / total_size) * 100
-                    prog_message = f"processing... {prog_status:.2f}%"
 
-                    # update status in Mongodb
-                    progress_data = {"status": prog_status, "message": prog_message}
-                    result = progress_collection.update_one(
-                        {"_id": upload_id},
-                        {"$set": progress_data},
-                        upsert=True
-                    )
-                    # print(f"MongoDB update result: {result.modified_count}")
-
+                    # Update every 5% increment
+                    if int(prog_status) % 5 == 0 and int(prog_status) != previous_status:
+                        prog_message = f"Processing... {prog_status:.2f}%"
+                        update_progress_bar(uid=upload_id, status=prog_status, message=prog_message)
+                        previous_status = int(prog_status)
+                        print(f"pre: {previous_status}")
                     if prog_status >= 100:
                         prog_message = "Please wait for a few seconds..."
-                        progress_collection.update_one({"_id": upload_id}, {"$set": {"message": prog_message}}, upsert=True)                       
+                        update_progress_bar(uid=upload_id,status=prog_status,message=prog_message)                       
                         break
             # Upload the audio file to AssemblyAI in chunks
             response = requests.post(base_url + "/upload", headers=headers, data=upload_chunks())
@@ -297,13 +305,14 @@ def upload_audio_to_assemblyai(audio_path):
 def progress_status():
     """Return the current progress status as JSON."""
     global upload_id
-    progress = progress_collection.find_one(
-        {"_id": upload_id}
-    )
-
+    progress = progress_collection.find_one({
+        "_id": upload_id
+    })
+    print(f'progress: {progress}')
     if progress is None:
         return jsonify({"status": 0, "message": "Ready to upload"}) 
     else:
+        progress.pop("_id", None)
         return jsonify(progress) 
 
 @app.route('/reset-progress', methods=['GET', 'POST'])
