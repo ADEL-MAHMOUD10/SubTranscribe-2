@@ -198,7 +198,8 @@ def transcribe_from_link(link):
                             prog_message = f"Processing... {prog_status:.2f}%"
                             update_progress_bar(uid=upload_id, status=prog_status, message=prog_message)
                             previous_status = int(prog_status)
-
+                            continue
+                            
                         if prog_status >= 100:
                             prog_message = "Please wait for a few seconds..."
                             update_progress_bar(uid=upload_id,status=prog_status,message=prog_message)
@@ -277,6 +278,7 @@ def upload_audio_to_assemblyai(audio_path):
                         prog_message = f"Processing... {prog_status:.2f}%"
                         update_progress_bar(uid=upload_id, status=prog_status, message=prog_message)
                         previous_status = int(prog_status)
+                        continue
 
                     if prog_status >= 100:
                         prog_message = "Please wait for a few seconds..."
