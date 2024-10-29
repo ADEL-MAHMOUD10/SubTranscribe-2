@@ -42,9 +42,7 @@ firebase_credentials = {
 
 # Create a Flask application instance
 app = Flask(__name__)
-cors = CORS(app)
-# cors = CORS(app, resources={r"/*": {"origins": "https://subtranscribe.koyeb.app"}})
-
+cors = CORS(app, resources={r"/*": {"origins": "https://subtranscribe.koyeb.app"}})
 
 # Set up MongoDB connection
 cluster = MongoClient(TOKEN_ONE)
@@ -89,9 +87,9 @@ def progress_status():
     if progress is None:
         progress = ref.update({
             'status': 0,
-            'message': "Initialize"
+            'message': "Initializing"
         })
-        
+        jsonify(progress)
     if progress:
         progress.pop("id", None)  
         return jsonify(progress)
