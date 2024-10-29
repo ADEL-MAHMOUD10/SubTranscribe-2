@@ -89,7 +89,7 @@ def progress_status():
     if progress is None:
         progress = ref.update({
             'status': 0,
-            'message': "NO progress yet"
+            'message': "Initialize"
         })
         
     if progress:
