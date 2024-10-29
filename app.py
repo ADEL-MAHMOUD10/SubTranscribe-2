@@ -44,6 +44,7 @@ firebase_credentials = {
 app = Flask(__name__)
 cors = CORS(app, resources={r"/*": {"origins": "https://subtranscribe.koyeb.app"}})
 
+
 # Set up MongoDB connection
 cluster = MongoClient(TOKEN_ONE)
 dbase = cluster["Datedb"]  # Specify the database name
@@ -70,11 +71,11 @@ def reset_progress():
     progress_data = generate_new_uuid()
     return jsonify(progress_data)
 
-def update_progress_bar(uid,status,message):
+def update_progress_bar(uid,B_status,message):
     """Update the progress bar in the MongoDB database."""
     ref = db.reference(f'/{uid}')
     ref.update({
-        'status': round(status, 2),
+        'status': round(B_status, 2),
         'message': message
     })
 
@@ -87,7 +88,7 @@ def progress_status():
     if progress is None:
         progress = ref.update({
             'status': 0,
-            'message': "Initializing"
+            'message': "Initialize"
         })
         jsonify(progress)
     if progress:
@@ -244,12 +245,12 @@ def transcribe_from_link(link):
                         # Update every 5% increment
                         if int(prog_status) % 5 == 0 and int(prog_status) != previous_status:
                             prog_message = f"Processing... {prog_status:.2f}%"
-                            update_progress_bar(uid=upload_id, status=prog_status, message=prog_message)
+                            update_progress_bar(uid=upload_id, B_status=prog_status, message=prog_message)
                             previous_status = int(prog_status)
                             continue
                         if prog_status >= 100:
                             prog_message = "Please wait for a few seconds..."
-                            update_progress_bar(uid=upload_id,status=prog_status,message=prog_message)
+                            update_progress_bar(uid=upload_id,B_status=prog_status,message=prog_message)
                             break
 
             # Upload the audio file to AssemblyAI in chunks
@@ -323,7 +324,7 @@ def upload_audio_to_assemblyai(audio_path):
                     # Update every 5% increment
                     if int(prog_status) % 5 == 0 and int(prog_status) != previous_status:
                         prog_message = f"Processing... {prog_status:.2f}%"
-                        update_progress_bar(uid=upload_id, status=prog_status, message=prog_message)
+                        update_progress_bar(uid=upload_id, B_status=prog_status, message=prog_message)
                         previous_status = int(prog_status)
                         continue
 
