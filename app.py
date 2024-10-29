@@ -59,14 +59,18 @@ firebase_admin.initialize_app(cred,{
     "databaseURL":"https://subtranscribe-default-rtdb.europe-west1.firebasedatabase.app/"
     })
 
-
 def generate_new_uuid():
     """Generate a new UUID for each page load or refresh."""
     global upload_id
     upload_id = str(uuid.uuid4())
-    progress_data = {"_id": upload_id, "status": 0, "message": "Initializing"}
-    progress_collection.update_one({"_id": upload_id}, {"$set": progress_data}, upsert=True)
-    return progress_data
+    return upload_id
+
+@app.route('/reset-progress', methods=['GET', 'POST'])
+@cross_origin()  # Allow CORS for this route
+def reset_progress():
+    """Reset the current progress status."""
+    progress_data = generate_new_uuid()
+    return jsonify(progress_data)
 
 def update_progress_bar(uid,status,message):
     """Update the progress bar in the MongoDB database."""
@@ -76,6 +80,23 @@ def update_progress_bar(uid,status,message):
         'message': message
     })
 
+@app.route('/progress', methods=['GET', 'POST'])
+@cross_origin()  # Allow CORS for this route
+def progress_status():
+    """Return the current progress status as JSON."""
+    ref = db.reference(f'/{upload_id}')
+    progress = ref.get()
+    if progress is None:
+        progress = ref.update({
+            'status': 0,
+            'message': "NO progress yet"
+        })
+        
+    if progress:
+        progress.pop("id", None)  
+        return jsonify(progress)
+    return jsonify({"status": 0, "message": "Ready to upload"})
+
 def Update_progress_db(transcript_id, status, message, Section, file_name=None, link=None):
     """Update the progress status in the MongoDB database."""
     collection = dbase["Main"]  # Specify the collection name
@@ -83,7 +104,7 @@ def Update_progress_db(transcript_id, status, message, Section, file_name=None, 
 
     # Prepare the post data
     post = {
-        "ID": transcript_id,
+        "_id": transcript_id,
         "status": status,
         "message": message,
         "Section": Section,
@@ -139,6 +160,7 @@ def upload_or_link():
                 file.save(file_path)  # Save the uploaded file
                 file_extension = os.path.splitext(file_path)[1].lower()  # Get the file extension
 
+                
                 # Process video files
                 if file_extension in [".mp4", ".wmv", ".mov", ".mkv", ".h.264"]:
                     audio_file_path = convert_video_to_audio(file_path)  # Convert video to audio
@@ -220,11 +242,6 @@ def transcribe_from_link(link):
 
                         # Update the progress dictionary for frontend
                         prog_status = (bar.n / total_size) * 100
-                        progress_data = {
-                            "status": prog_status,
-                            "message": f"Processing... {prog_status:.2f}%"
-                        }
-                        requests.post("https://subtranscribe.koyeb.app/progress", json=progress_data)
 
                         # Update every 5% increment
                         if int(prog_status) % 5 == 0 and int(prog_status) != previous_status:
@@ -304,11 +321,6 @@ def upload_audio_to_assemblyai(audio_path):
 
                     # Update the progress dictionary for frontend
                     prog_status = (bar.n / total_size) * 100 
-                    progress_data = {
-                        "status": prog_status,
-                        "message": f"Processing... {prog_status:.2f}%"
-                    }
-                    requests.post("https://subtranscribe.koyeb.app/progress", json=progress_data)
 
                     # Update every 5% increment
                     if int(prog_status) % 5 == 0 and int(prog_status) != previous_status:
@@ -318,8 +330,7 @@ def upload_audio_to_assemblyai(audio_path):
                         continue
 
                     if prog_status >= 100:
-                        prog_message = "Please wait for a few seconds..."
-                        update_progress_bar(uid=upload_id,status=prog_status,message=prog_message)                       
+                        prog_message = "Please wait for a few seconds..."                       
                         break
             # Upload the audio file to AssemblyAI in chunks
             response = requests.post(base_url + "/upload", headers=headers, data=upload_chunks())
@@ -338,25 +349,6 @@ def upload_audio_to_assemblyai(audio_path):
             return transcript_id
         elif transcription_result['status'] == 'error':
             raise RuntimeError(f"Transcription failed: {transcription_result['error']}")
-
-@app.route('/progress', methods=['GET', 'POST'])
-@cross_origin()  # Allow CORS for this route
-def progress_status():
-    """Return the current progress status as JSON."""
-    global upload_id
-    ref = db.reference(f'/{upload_id}')
-    progress = ref.get()
-    if progress:
-        progress.pop("id", None)  
-        return jsonify(progress)
-    return jsonify({"status": 0, "message": "Ready to upload"})
-
-@app.route('/reset-progress', methods=['GET', 'POST'])
-@cross_origin()  # Allow CORS for this route
-def reset_progress():
-    """Reset the current progress status."""
-    progress_data = generate_new_uuid()
-    return jsonify(progress_data)
 
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
