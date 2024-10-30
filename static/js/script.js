@@ -62,7 +62,7 @@ const intervalId = setInterval(function () {
             // Change color based on progress.
             if (progressPercentage === 100) {
                 progressBar.style.backgroundColor = 'green'; // Success color
-                messageElement.textContent = "Please wait for a few seconds...";
+                messageElement.textContent = "Upload completed. Please wait for a few seconds...";
                 clearInterval(intervalId);
                 // Optionally trigger additional completion logic here
             } else if (progressPercentage >= 50) {
