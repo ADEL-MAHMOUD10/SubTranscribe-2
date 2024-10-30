@@ -63,6 +63,11 @@ def reset_progress():
     """Reset the current progress status."""
     upload_id = str(uuid.uuid4())
     session['upload_id'] = upload_id
+    ref = db.reference(f'/UID/{upload_id}')
+    ref.update({
+        'status': 0,
+        'message': "Ready to upload"
+    })
     return jsonify(upload_id)
 
 def update_progress_bar(B_status,message):
@@ -222,7 +227,7 @@ def transcribe_from_link(link):
 
                 previous_status = -1  # Track the last updated progress
                 with requests.get(audio_url, stream=True) as f:
-                    for chunk in f.iter_content(chunk_size=450000):  # Read 450KB chunks
+                    for chunk in f.iter_content(chunk_size=300000):  # Read 300KB chunks
                         if not chunk:
                             break
                         yield chunk
@@ -301,7 +306,7 @@ def upload_audio_to_assemblyai(audio_path):
                 prog_status = 0
                 previous_status = -1  # Track the last updated progress
                 while True:
-                    chunk = f.read(450000)  # Read 450KB chunks
+                    chunk = f.read(300000)  # Read 300KB chunks
                     if not chunk:
                         break
                     yield chunk
