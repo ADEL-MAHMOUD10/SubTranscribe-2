@@ -42,15 +42,15 @@ firebase_credentials = {
 
 # Create a Flask application instance
 app = Flask(__name__)
-cors = CORS(app, resources={r"/*": {"origins": "https://subtranscribe.koyeb.app"}})
-
+cors = CORS(app)
+# cors = CORS(app, resources={r"/*": {"origins": "https://subtranscribe.koyeb.app"}})
 
 # Set up MongoDB connection
 cluster = MongoClient(TOKEN_ONE)
 dbase = cluster["Datedb"]  # Specify the database name
 fs = gridfs.GridFS(dbase)  # Create a GridFS instance for file storage
 progress_collection = dbase['progress']  #(Collection)
-upload_id = None
+
 
 # Set up Firebase connection
 cred = credentials.Certificate(firebase_credentials)
@@ -83,6 +83,7 @@ def update_progress_bar(uid,B_status,message):
 @cross_origin()  # Allow CORS for this route
 def progress_status():
     """Return the current progress status as JSON."""
+    global upload_id
     ref = db.reference(f'/{upload_id}')
     progress = ref.get()
     if progress is None:
@@ -243,7 +244,7 @@ def transcribe_from_link(link):
                         prog_status = (bar.n / total_size) * 100
 
                         # Update every 5% increment
-                        if int(prog_status) % 5 == 0 and int(prog_status) != previous_status:
+                        if int(prog_status) % 10 == 0 and int(prog_status) != previous_status:
                             prog_message = f"Processing... {prog_status:.2f}%"
                             update_progress_bar(uid=upload_id, B_status=prog_status, message=prog_message)
                             previous_status = int(prog_status)
@@ -321,8 +322,8 @@ def upload_audio_to_assemblyai(audio_path):
                     # Update the progress dictionary for frontend
                     prog_status = (bar.n / total_size) * 100 
 
-                    # Update every 5% increment
-                    if int(prog_status) % 5 == 0 and int(prog_status) != previous_status:
+                    # Update every 10% increment
+                    if int(prog_status) % 10 == 0 and int(prog_status) != previous_status:
                         prog_message = f"Processing... {prog_status:.2f}%"
                         update_progress_bar(uid=upload_id, B_status=prog_status, message=prog_message)
                         previous_status = int(prog_status)
