@@ -288,13 +288,14 @@ def transcribe_from_link(link):
 
 #     return audio_id
 
-
 def upload_audio_to_assemblyai(audio_path):
     """Upload audio file to AssemblyAI for transcription with progress tracking."""
     headers = {"authorization": TOKEN_THREE}
     base_url = "https://api.assemblyai.com/v2"
 
     total_size = os.path.getsize(audio_path)  # Get the file size
+    chunk_size = 300000  # Set the chunk size to 300KB
+
     with open(audio_path, "rb") as f:
         # Initialize tqdm progress bar
         with tqdm(total=total_size, unit='B', unit_scale=True, desc='Uploading', ncols=100) as bar:
@@ -304,13 +305,13 @@ def upload_audio_to_assemblyai(audio_path):
                 prog_status = 0
                 previous_status = -1  # Track the last updated progress
                 while True:
-                    chunk = f.read(300000)  # Read 300KB chunks
+                    chunk = f.read(chunk_size)  # Read chunks of specified size
                     if not chunk:
                         break
                     yield chunk
                     bar.update(len(chunk))  # Update progress bar
 
-                    # Update the progress dictionary for frontend
+                    # Update the progress dictionary for the frontend
                     prog_status = (bar.n / total_size) * 100
 
                     # Update every 5% increment
@@ -324,8 +325,16 @@ def upload_audio_to_assemblyai(audio_path):
                 prog_message = "Upload completed. Please wait for a few seconds..."
                 update_progress_bar(B_status=prog_status, message=prog_message)
 
-            # Upload the audio file to AssemblyAI in chunks
-            response = requests.post(base_url + "/upload", headers=headers, data=upload_chunks())
+            # Upload the audio file to AssemblyAI in chunks using `stream`
+            response = requests.post(
+                base_url + "/upload", 
+                headers=headers, 
+                data=upload_chunks(),
+                stream=True  # Enable streaming
+            )
+
+            # Ensure the response is successful
+            response.raise_for_status()
 
     upload_url = response.json()["upload_url"]
     data = {"audio_url": upload_url}
@@ -338,12 +347,12 @@ def upload_audio_to_assemblyai(audio_path):
         transcription_result = requests.get(polling_endpoint, headers=headers).json()
         if transcription_result['status'] == 'completed':
             # Update the progress in the database
-            Update_progress_db(transcript_id, prog_status, prog_message, "Download page", file_name=audio_path)
+            update_progress_bar(B_status=prog_status, message=prog_message)
             os.remove(audio_path)
             return transcript_id
         elif transcription_result['status'] == 'error':
             raise RuntimeError(f"Transcription failed: {transcription_result['error']}")
-
+        
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
     """Handle subtitle download based on the transcript ID."""
