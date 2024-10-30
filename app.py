@@ -42,8 +42,7 @@ firebase_credentials = {
 
 # Create a Flask application instance
 app = Flask(__name__)
-cors = CORS(app)
-# cors = CORS(app, resources={r"/*": {"origins": "https://subtranscribe.koyeb.app"}})
+cors = CORS(app, resources={r"/*": {"origins": "https://subtranscribe.koyeb.app"}})
 
 # Set up MongoDB connection
 cluster = MongoClient(TOKEN_ONE)
