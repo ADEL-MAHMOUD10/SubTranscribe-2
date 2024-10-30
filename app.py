@@ -270,8 +270,6 @@ def transcribe_from_link(link):
     while True:
         transcript_response = requests.get(f"{base_url}/transcript/{transcript_id}", headers=headers)  # Get the status of the transcript
         if transcript_response.status_code == 200:  # Check if the request was successful
-            prog_status = 100
-            prog_message = "Please wait for a few seconds..."
             transcript_data = transcript_response.json()  # Parse the JSON response
             if transcript_data['status'] == 'completed':  # If the transcription is completed
                 Update_progress_db(transcript_id, status=prog_status, message="Completed", Section="Download page", link=audio_url)  # Update progress in the database
