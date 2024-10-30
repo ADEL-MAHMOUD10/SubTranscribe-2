@@ -82,12 +82,6 @@ def progress_status():
     upload_id = session.get('upload_id')
     ref = db.reference(f'/UID/{upload_id}')
     progress = ref.get()
-    if progress is None:
-        progress = ref.update({
-            'status': 0,
-            'message': "Initialize"
-        })
-        return jsonify(progress)
     if progress:
         progress.pop("id", None)  
         return jsonify(progress)
