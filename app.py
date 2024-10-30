@@ -9,7 +9,7 @@ import yt_dlp
 import json
 import uuid
 import firebase_admin
-from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file, Response
+from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file, Response, session
 from firebase_admin import db , credentials
 from werkzeug.utils import secure_filename
 from flask_cors import CORS, cross_origin
@@ -42,6 +42,7 @@ firebase_credentials = {
 
 # Create a Flask application instance
 app = Flask(__name__)
+app.secret_key = "2F0838f0d6"  
 cors = CORS(app, resources={r"/*": {"origins": "https://subtranscribe.koyeb.app"}})
 
 # Set up MongoDB connection
@@ -49,7 +50,6 @@ cluster = MongoClient(TOKEN_ONE)
 dbase = cluster["Datedb"]  # Specify the database name
 fs = gridfs.GridFS(dbase)  # Create a GridFS instance for file storage
 progress_collection = dbase['progress']  #(Collection)
-upload_id=''
 
 # Set up Firebase connection
 cred = credentials.Certificate(firebase_credentials)
@@ -57,22 +57,18 @@ firebase_admin.initialize_app(cred,{
     "databaseURL":"https://subtranscribe-default-rtdb.europe-west1.firebasedatabase.app/"
     })
 
-def generate_new_uuid():
-    """Generate a new UUID for each page load or refresh."""
-    global upload_id
-    upload_id = str(uuid.uuid4())
-    return upload_id
-
 @app.route('/reset-progress', methods=['GET', 'POST'])
 @cross_origin()  # Allow CORS for this route
 def reset_progress():
     """Reset the current progress status."""
-    progress_data = generate_new_uuid()
-    return jsonify(progress_data)
+    upload_id = str(uuid.uuid4())
+    session['upload_id'] = upload_id
+    return jsonify(upload_id)
 
-def update_progress_bar(uid,B_status,message):
+def update_progress_bar(B_status,message):
     """Update the progress bar in the MongoDB database."""
-    ref = db.reference(f'/{uid}')
+    upload_id = session.get('upload_id')
+    ref = db.reference(f'/UID/{upload_id}')
     ref.update({
         'status': round(B_status, 2),
         'message': message
@@ -82,8 +78,8 @@ def update_progress_bar(uid,B_status,message):
 @cross_origin()  # Allow CORS for this route
 def progress_status():
     """Return the current progress status as JSON."""
-    global upload_id
-    ref = db.reference(f'/{upload_id}')
+    upload_id = session.get('upload_id')
+    ref = db.reference(f'/UID/{upload_id}')
     progress = ref.get()
     if progress is None:
         progress = ref.update({
@@ -245,12 +241,12 @@ def transcribe_from_link(link):
                         # Update every 5% increment
                         if int(prog_status) % 10 == 0 and int(prog_status) != previous_status:
                             prog_message = f"Processing... {prog_status:.2f}%"
-                            update_progress_bar(uid=upload_id, B_status=prog_status, message=prog_message)
+                            update_progress_bar(B_status=prog_status, message=prog_message)
                             previous_status = int(prog_status)
                             continue
                         if prog_status >= 100:
                             prog_message = "Please wait for a few seconds..."
-                            update_progress_bar(uid=upload_id,B_status=prog_status,message=prog_message)
+                            update_progress_bar(B_status=prog_status,message=prog_message)
                             break
 
             # Upload the audio file to AssemblyAI in chunks
@@ -324,7 +320,7 @@ def upload_audio_to_assemblyai(audio_path):
                     # Update every 10% increment
                     if int(prog_status) % 10 == 0 and int(prog_status) != previous_status:
                         prog_message = f"Processing... {prog_status:.2f}%"
-                        update_progress_bar(uid=upload_id, B_status=prog_status, message=prog_message)
+                        update_progress_bar(B_status=prog_status, message=prog_message)
                         previous_status = int(prog_status)
                         continue
 
