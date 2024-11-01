@@ -222,10 +222,9 @@ def transcribe_from_link(link):
         # Initialize progress bar
         with tqdm(total=total_size, unit='B', unit_scale=True, desc='Uploading', ncols=100) as bar:
             def upload_chunks():
-                global prog_status, prog_message
-                # Stream the audio file in chunks
-
                 previous_status = -1  # Track the last updated progress
+                
+                # Stream the audio file in chunks 
                 with requests.get(audio_url, stream=True) as f:
                     for chunk in f.iter_content(chunk_size=300000):  # Read 300KB chunks
                         if not chunk:
@@ -237,7 +236,7 @@ def transcribe_from_link(link):
                         # Update the progress dictionary for frontend
                         prog_status = (bar.n / total_size) * 100
 
-                        # Update every 5% increment
+                        # Update every 10% increment
                         if int(prog_status) % 10 == 0 and int(prog_status) != previous_status:
                             prog_message = f"Processing... {prog_status:.2f}%"
                             update_progress_bar(B_status=prog_status, message=prog_message)
@@ -251,7 +250,12 @@ def transcribe_from_link(link):
             # Upload the audio file to AssemblyAI in chunks
             base_url = "https://api.assemblyai.com/v2"
             headers = {"authorization": TOKEN_THREE}  # Set authorization header
-            response = requests.post(base_url + "/upload", headers=headers, data=upload_chunks())
+            response = requests.post(
+                base_url + "/upload", 
+                headers=headers, 
+                data=upload_chunks(),
+                stream=True  # Enable streaming
+            )
 
             # Check upload response
             if response.status_code != 200:
@@ -272,7 +276,7 @@ def transcribe_from_link(link):
         if transcript_response.status_code == 200:  # Check if the request was successful
             transcript_data = transcript_response.json()  # Parse the JSON response
             if transcript_data['status'] == 'completed':  # If the transcription is completed
-                Update_progress_db(transcript_id, status=prog_status, message="Completed", Section="Download page", link=audio_url)  # Update progress in the database
+                Update_progress_db(transcript_id, status=100, message="Completed", Section="Download page", link=audio_url)  # Update progress in the database
                 return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download page
             elif transcript_data['status'] == 'error':  # If there was an error during transcription
                 Update_progress_db(transcript_id, status=0, message="Invalid Link", Section="Link", link=audio_url)  # Update database with error
@@ -295,11 +299,11 @@ def upload_audio_to_assemblyai(audio_path):
 
     total_size = os.path.getsize(audio_path)  # Get the file size
     chunk_size = 450000  # Set the chunk size to 450KB
-
     with open(audio_path, "rb") as f:
         # Initialize tqdm progress bar
         with tqdm(total=total_size, unit='B', unit_scale=True, desc='Uploading', ncols=100) as bar:
             def upload_chunks():
+                previous_status = -1
                 while True:
                     chunk = f.read(chunk_size)  # Read chunks of specified size
                     if not chunk:
@@ -311,14 +315,16 @@ def upload_audio_to_assemblyai(audio_path):
                     prog_status = (bar.n / total_size) * 100
                     prog_message = f"Processing... {prog_status:.2f}%"
 
-                    # Updated in every increment
-                    update_progress_bar(B_status=prog_status, message=prog_message)
-
-                # Final update when upload is completed
-                prog_status = 100
-                prog_message = "Upload completed. Please wait for a few seconds..."
-                update_progress_bar(B_status=prog_status, message=prog_message)
-
+                        # Update every 10% increment
+                    if int(prog_status) % 10 == 0 and int(prog_status) != previous_status:
+                        prog_message = f"Processing... {prog_status:.2f}%"
+                        update_progress_bar(B_status=prog_status, message=prog_message)
+                        previous_status = int(prog_status)
+                        continue
+                    if prog_status >= 100:
+                        prog_message = "Please wait for a few seconds..."
+                        update_progress_bar(B_status=prog_status,message=prog_message)
+                        break
             # Upload the audio file to AssemblyAI in chunks using `stream`
             response = requests.post(
                 base_url + "/upload", 
@@ -344,7 +350,7 @@ def upload_audio_to_assemblyai(audio_path):
             return transcript_id
         elif transcription_result['status'] == 'error':
             raise RuntimeError(f"Transcription failed: {transcription_result['error']}")
-          
+        
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
     """Handle subtitle download based on the transcript ID."""
