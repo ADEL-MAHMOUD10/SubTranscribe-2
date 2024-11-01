@@ -235,13 +235,13 @@ def transcribe_from_link(link):
                         # Update the progress dictionary for frontend
                         prog_status = (bar.n / total_size) * 100
 
-                        # Update every 5% increment
+                        # Update every 10% increment
                         if int(prog_status) % 10 == 0 and int(prog_status) != previous_status:
                             prog_message = f"Processing... {prog_status:.2f}%"
                             update_progress_bar(B_status=prog_status, message=prog_message)
                             previous_status = int(prog_status)
                             continue
-                        if prog_status >= 100:
+                        if prog_status == 100:
                             prog_message = "Please wait for a few seconds..."
                             update_progress_bar(B_status=prog_status,message=prog_message)
                             break
@@ -249,7 +249,7 @@ def transcribe_from_link(link):
             # Upload the audio file to AssemblyAI in chunks
             base_url = "https://api.assemblyai.com/v2"
             headers = {"authorization": TOKEN_THREE}  # Set authorization header
-            response = requests.post(base_url + "/upload", headers=headers, data=upload_chunks())
+            response = requests.post(base_url + "/upload", headers=headers, data=upload_chunks(),stream=True)
 
             # Check upload response
             if response.status_code != 200:
@@ -311,19 +311,18 @@ def upload_audio_to_assemblyai(audio_path):
                     # Update the progress dictionary for frontend
                     prog_status = (bar.n / total_size) * 100
 
-                    # Update every 5% increment
-                    if int(prog_status) != previous_status:
+                    # Update every 10% increment
+                    if int(prog_status) % 10 == 0 and int(prog_status) != previous_status:
                         prog_message = f"Processing... {prog_status:.2f}%"
                         update_progress_bar(B_status=prog_status, message=prog_message)
                         previous_status = int(prog_status)
-
-                # Final update when upload is completed
-                prog_status = 100
-                prog_message = "Upload completed. Please wait for a few seconds..."
-                update_progress_bar(B_status=prog_status, message=prog_message)
-
+                        continue
+                    if prog_status == 100:
+                        prog_message = "Please wait for a few seconds..."
+                        update_progress_bar(B_status=prog_status,message=prog_message)
+                        break
             # Upload the audio file to AssemblyAI in chunks
-            response = requests.post(base_url + "/upload", headers=headers, data=upload_chunks())
+            response = requests.post(base_url + "/upload", headers=headers, data=upload_chunks(),stream=True)
 
     upload_url = response.json()["upload_url"]
     data = {"audio_url": upload_url}
