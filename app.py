@@ -294,16 +294,12 @@ def upload_audio_to_assemblyai(audio_path):
     base_url = "https://api.assemblyai.com/v2"
 
     total_size = os.path.getsize(audio_path)  # Get the file size
-    chunk_size = 300000  # Set the chunk size to 300KB
+    chunk_size = 450000  # Set the chunk size to 450KB
 
     with open(audio_path, "rb") as f:
         # Initialize tqdm progress bar
         with tqdm(total=total_size, unit='B', unit_scale=True, desc='Uploading', ncols=100) as bar:
             def upload_chunks():
-                global prog_status, prog_message
-
-                prog_status = 0
-                previous_status = -1  # Track the last updated progress
                 while True:
                     chunk = f.read(chunk_size)  # Read chunks of specified size
                     if not chunk:
@@ -313,12 +309,10 @@ def upload_audio_to_assemblyai(audio_path):
 
                     # Update the progress dictionary for the frontend
                     prog_status = (bar.n / total_size) * 100
+                    prog_message = f"Processing... {prog_status:.2f}%"
 
-                    # Update every 5% increment
-                    if int(prog_status) != previous_status:
-                        prog_message = f"Processing... {prog_status:.2f}%"
-                        update_progress_bar(B_status=prog_status, message=prog_message)
-                        previous_status = int(prog_status)
+                    # Updated in every increment
+                    update_progress_bar(B_status=prog_status, message=prog_message)
 
                 # Final update when upload is completed
                 prog_status = 100
@@ -346,13 +340,11 @@ def upload_audio_to_assemblyai(audio_path):
     while True:
         transcription_result = requests.get(polling_endpoint, headers=headers).json()
         if transcription_result['status'] == 'completed':
-            # Update the progress in the database
-            update_progress_bar(B_status=prog_status, message=prog_message)
             os.remove(audio_path)
             return transcript_id
         elif transcription_result['status'] == 'error':
             raise RuntimeError(f"Transcription failed: {transcription_result['error']}")
-        
+          
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
     """Handle subtitle download based on the transcript ID."""
