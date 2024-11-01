@@ -46,7 +46,7 @@ cors = CORS(app, resources={r"/*": {"origins": "https://subtranscribe.koyeb.app"
 app.secret_key = "2F0838f0d6"  
 
 # Set up MongoDB connection
-cluster = MongoClient(TOKEN_ONE)
+cluster = MongoClient(TOKEN_ONE,connectTimeoutMS=5000, serverSelectionTimeoutMS=5000)
 dbase = cluster["Datedb"]  # Specify the database name
 fs = gridfs.GridFS(dbase)  # Create a GridFS instance for file storage
 progress_collection = dbase['progress']  #(Collection)
