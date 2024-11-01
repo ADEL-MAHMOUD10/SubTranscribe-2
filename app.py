@@ -43,7 +43,7 @@ firebase_credentials = {
 # Create a Flask application instance
 app = Flask(__name__)
 cors = CORS(app, resources={r"/*": {"origins": "https://subtranscribe.koyeb.app"}})
-app.secret_key = "2F0838f0d6"  
+app.secret_key = "2F0838f0t5d6"  
 
 # Set up MongoDB connection
 cluster = MongoClient(TOKEN_ONE)
@@ -299,11 +299,11 @@ def upload_audio_to_assemblyai(audio_path):
 
     total_size = os.path.getsize(audio_path)  # Get the file size
     chunk_size = 450000  # Set the chunk size to 450KB
+
     with open(audio_path, "rb") as f:
         # Initialize tqdm progress bar
         with tqdm(total=total_size, unit='B', unit_scale=True, desc='Uploading', ncols=100) as bar:
             def upload_chunks():
-                previous_status = -1
                 while True:
                     chunk = f.read(chunk_size)  # Read chunks of specified size
                     if not chunk:
@@ -315,16 +315,14 @@ def upload_audio_to_assemblyai(audio_path):
                     prog_status = (bar.n / total_size) * 100
                     prog_message = f"Processing... {prog_status:.2f}%"
 
-                        # Update every 10% increment
-                    if int(prog_status) % 10 == 0 and int(prog_status) != previous_status:
-                        prog_message = f"Processing... {prog_status:.2f}%"
-                        update_progress_bar(B_status=prog_status, message=prog_message)
-                        previous_status = int(prog_status)
-                        continue
-                    if prog_status >= 100:
-                        prog_message = "Please wait for a few seconds..."
-                        update_progress_bar(B_status=prog_status,message=prog_message)
-                        break
+                    # Updated in every increment
+                    update_progress_bar(B_status=prog_status, message=prog_message)
+
+                # Final update when upload is completed
+                prog_status = 100
+                prog_message = "Upload completed. Please wait for a few seconds..."
+                update_progress_bar(B_status=prog_status, message=prog_message)
+
             # Upload the audio file to AssemblyAI in chunks using `stream`
             response = requests.post(
                 base_url + "/upload", 
