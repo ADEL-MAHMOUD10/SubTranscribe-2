@@ -132,9 +132,10 @@ def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'.mp4', '.wmv', '.mov', '.mkv', '.h.264', '.mp3', '.wav'}
     return '.' in filename and os.path.splitext(filename)[1].lower() in ALLOWED_EXTENSIONS
 
+
 @app.route('/', methods=['GET', 'POST'])
 def upload_or_link():
-    """Handle file upload or link input for transcription."""
+    """Handle file uploads or links for transcription."""
     if request.method == 'GET':
         return render_template("index.html")
     
@@ -143,30 +144,32 @@ def upload_or_link():
         if link:
             transcript_id = transcribe_from_link(link)  # Transcribe from the provided link
             return transcript_id  
-
+        
         file = request.files.get('file')  # Get the uploaded file
         if file and allowed_file(file.filename):
+            audio_stream = file
             file_size = request.content_length  # Get file size in bytes
             try:
-                transcript_id = upload_audio_to_assemblyai(file.stream, file_size)  # Upload directly using stream
+                transcript_id = upload_audio_to_assemblyai(audio_stream, file_size)  # Upload directly using stream
                 return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download page
             except Exception as e:
                 return render_template("error.html")  # Display error page
         else:
-            return render_template('error.html')
+            Update_progress_db(transcript_id, status=0, message="Error file", Section="Upload Page")
+            return render_template("error.html")  # Render error page if file type is not allowed
     else:
         return render_template('index.html')
 
-def upload_audio_to_assemblyai(file_stream, file_size):
+def upload_audio_to_assemblyai(audio_file,file_size):
     """Upload audio file to AssemblyAI in chunks with progress tracking."""
     headers = {"authorization": TOKEN_THREE}
     base_url = "https://api.assemblyai.com/v2"
-
+    # response = requests.post(f"{base_url}/upload", headers=headers, data=audio_file, stream=True)
     def upload_chunks():
         """Generator function to upload file in chunks and track progress."""
         uploaded_size = 0
         while True:
-            chunk = file_stream.read(300000)  # Read a 300 KB chunk
+            chunk = audio_file.read(300000)  # Read a 300 KB chunk
             if not chunk:
                 break
             yield chunk
@@ -176,7 +179,7 @@ def upload_audio_to_assemblyai(file_stream, file_size):
             
             # Update the progress bar
             update_progress_bar(B_status=progress_percentage, message=prog_message)
-
+    
     # Upload the file to AssemblyAI and get the URL
     response = requests.post(f"{base_url}/upload", headers=headers, data=upload_chunks(), stream=True)
     if response.status_code != 200:
