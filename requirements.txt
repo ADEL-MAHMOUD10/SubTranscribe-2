@@ -15,6 +15,6 @@ yt_dlp==2024.10.22
 DateTime
 python-dateutil
 dnspython
+Python-IO
 gunicorn
 uuid
-io
