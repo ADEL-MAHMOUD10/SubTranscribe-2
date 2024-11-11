@@ -8,7 +8,7 @@ import gridfs
 import yt_dlp
 import json
 import uuid
-import firebase_admin
+import firebase_admin 
 from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file, Response, session
 from firebase_admin import db , credentials
 from werkzeug.utils import secure_filename
@@ -42,7 +42,7 @@ firebase_credentials = {
 
 # Create a Flask application instance
 app = Flask(__name__)
-cors = CORS(app, resources={r"/*": {"origins": "https://subtranscribe.koyeb.app"}})
+cors = CORS(app)
 app.secret_key = "2F0838f0d6"  
 
 # Set up MongoDB connection
@@ -134,7 +134,7 @@ def allowed_file(filename):
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_or_link():
-    """Handle file uploads or links for transcription."""
+    """Handle file upload or link input for transcription."""
     if request.method == 'GET':
         return render_template("index.html")
     
@@ -146,48 +146,63 @@ def upload_or_link():
 
         file = request.files.get('file')  # Get the uploaded file
         if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)  # Secure the filename
-            file_path = f'{filename}' 
+            file_size = request.content_length  # Get file size in bytes
             try:
-                file.save(file_path)  # Save the uploaded file
-                file_extension = os.path.splitext(file_path)[1].lower()  # Get the file extension
-
-                
-                # Process video files
-                if file_extension in [".mp4", ".wmv", ".mov", ".mkv", ".h.264"]:
-                    audio_file_path = convert_video_to_audio(file_path)  # Convert video to audio
-                    os.remove(file_path)  # Remove the original video file
-
-                # Process audio files
-                elif file_extension in [".mp3", ".wav"]:
-                    audio_file_path = file_path  # Use the uploaded audio file
-                else:
-                    os.remove(file_path)  # Remove the file if not allowed
-                    Update_progress_db(transcript_id, status=0, message="Error file", Section="Upload Page")
-                    return render_template("error.html")  # Render error page if file type is not allowed
-
-                # Upload the audio file to GridFS
-                # audio_id = upload_audio_to_gridfs(audio_file_path)
-                transcript_id = upload_audio_to_assemblyai(audio_file_path)  # Pass progress to the function
-                # Update_progress_db(transcript_id, status=100, message="completed", Section="Download page", file_name=filename)
-                return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download subtitle
-                # Delete the audio file from GridFS after redirecting
-                # delete_audio_from_gridfs(audio_id)  # Call the delete function
-                # if audio_id:
-                #     time.sleep(10)
-                #     if transcript_id:
-                #         Update_progress_db(transcript_id, status=prog_status, message="completed", Section="Download page", file_name=filename)
-                #     else:
-                #         Update_progress_db(transcript_id, status=0, message="Transcription failed", Section="Error Page")
-                #         return render_template("error.html", error_message="Transcription failed. Please try again.")
+                transcript_id = upload_audio_to_assemblyai(file.stream, file_size)  # Upload directly using stream
+                return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download page
             except Exception as e:
-                return render_template("error.html")  # Render error page
+                return render_template("error.html")  # Display error page
         else:
             return render_template('error.html')
-
     else:
-        return render_template('index.html')  # Render the index page if GET request
+        return render_template('index.html')
 
+def upload_audio_to_assemblyai(file_stream, file_size):
+    """Upload audio file to AssemblyAI in chunks with progress tracking."""
+    headers = {"authorization": TOKEN_THREE}
+    base_url = "https://api.assemblyai.com/v2"
+
+    def upload_chunks():
+        """Generator function to upload file in chunks and track progress."""
+        uploaded_size = 0
+        while True:
+            chunk = file_stream.read(300000)  # Read a 300 KB chunk
+            if not chunk:
+                break
+            yield chunk
+            uploaded_size += len(chunk)
+            progress_percentage = (uploaded_size / file_size) * 100  # Calculate progress percentage
+            prog_message = f"Processing... {progress_percentage:.2f}%"
+            
+            # Update the progress bar
+            update_progress_bar(B_status=progress_percentage, message=prog_message)
+
+    # Upload the file to AssemblyAI and get the URL
+    response = requests.post(f"{base_url}/upload", headers=headers, data=upload_chunks(), stream=True)
+    if response.status_code != 200:
+        raise RuntimeError("File upload failed.")
+    
+    upload_url = response.json()["upload_url"]
+
+    # Request transcription from AssemblyAI using the uploaded file URL
+    data = {"audio_url": upload_url}
+    response = requests.post(f"{base_url}/transcript", json=data, headers=headers)
+    if response.status_code != 200:
+        raise RuntimeError("Transcription request failed.")
+    
+    transcript_id = response.json()["id"]
+    polling_endpoint = f"{base_url}/transcript/{transcript_id}"
+
+    # Poll for the transcription result until completion
+    while True:
+        transcription_result = requests.get(polling_endpoint, headers=headers).json()
+        if transcription_result['status'] == 'completed':
+            # Update progress in the database and clean up
+            Update_progress_db(transcript_id, 100, "Transcription completed", "Download page")
+            return transcript_id
+        elif transcription_result['status'] == 'error':
+            raise RuntimeError(f"Transcription failed: {transcription_result['error']}")
+        
 def convert_video_to_audio(video_path):
     """Convert video file to audio using ffmpeg."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -287,58 +302,6 @@ def transcribe_from_link(link):
 #     return audio_id
 
 
-
-def upload_audio_to_assemblyai(audio_path):
-    """Upload audio file to AssemblyAI for transcription with progress tracking."""
-    headers = {"authorization": TOKEN_THREE}
-    base_url = "https://api.assemblyai.com/v2"
-    total_size = os.path.getsize(audio_path)  # Get the file size in bytes
-
-    def upload_chunks():
-        """Generator to upload file in chunks and track progress."""
-        uploaded_size = 0
-        with open(audio_path, "rb") as f:
-            while True:
-                chunk = f.read(300000)  # Read a 300 KB chunk
-                if not chunk:
-                    break
-                yield chunk
-                uploaded_size += len(chunk)
-                uploaded_mb = uploaded_size / (1024 * 1024)  # Convert to MB
-                progress_percentage = (uploaded_size / total_size) * 100
-                prog_message = f"Processing... {progress_percentage:.2f}%"
-
-                
-                # Call the progress bar update function
-                update_progress_bar(B_status=progress_percentage, message=prog_message)
-
-    # Upload the file and get the URL
-    response = requests.post(f"{base_url}/upload", headers=headers, data=upload_chunks(), stream=True)
-    if response.status_code != 200:
-        raise RuntimeError("File upload failed.")
-    
-    upload_url = response.json()["upload_url"]
-
-    # Request transcription
-    data = {"audio_url": upload_url}
-    response = requests.post(f"{base_url}/transcript", json=data, headers=headers)
-    if response.status_code != 200:
-        raise RuntimeError("Transcription request failed.")
-    
-    transcript_id = response.json()["id"]
-    polling_endpoint = f"{base_url}/transcript/{transcript_id}"
-
-    # Polling for the transcription result
-    while True:
-        transcription_result = requests.get(polling_endpoint, headers=headers).json()
-        if transcription_result['status'] == 'completed':
-            # Update progress in the database and cleanup
-            Update_progress_db(transcript_id, 100, "Transcription completed", "Download page", file_name=audio_path)
-            os.remove(audio_path)  # Remove file after completion
-            return transcript_id
-        elif transcription_result['status'] == 'error':
-            raise RuntimeError(f"Transcription failed: {transcription_result['error']}")
-
 @app.route('/download/<transcript_id>', methods=['GET', 'POST'])
 def download_subtitle(transcript_id):
     """Handle subtitle download based on the transcript ID."""
@@ -374,3 +337,4 @@ def serve_file(filename):
 # Main entry point
 if __name__ == "__main__":
     app.run(host="0.0.0.0",debug=True,port=8000)
+
