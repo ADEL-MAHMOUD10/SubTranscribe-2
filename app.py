@@ -8,6 +8,7 @@ import gridfs
 import yt_dlp
 import json
 import uuid
+import io
 import firebase_admin 
 from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file, Response, session
 from firebase_admin import db , credentials
@@ -42,7 +43,8 @@ firebase_credentials = {
 
 # Create a Flask application instance
 app = Flask(__name__)
-cors = CORS(app)
+CORS(app, resources={r"/*": {"origins": ["http://localhost:8000", "https://subtranscribe.koyeb.app"]}})
+
 app.secret_key = "2F0838f0d6"  
 
 # Set up MongoDB connection
@@ -147,61 +149,72 @@ def upload_or_link():
         
         file = request.files.get('file')  # Get the uploaded file
         if file and allowed_file(file.filename):
-            audio_stream = file
-            file_size = request.content_length  # Get file size in bytes
+            audio_stream = io.BytesIO(file.read())  # Read file content into memory as a stream
+            file_size = len(audio_stream.getvalue())  # Get file size in bytes from the stream
+
             try:
                 transcript_id = upload_audio_to_assemblyai(audio_stream, file_size)  # Upload directly using stream
                 return redirect(url_for('download_subtitle', transcript_id=transcript_id))  # Redirect to download page
             except Exception as e:
-                return render_template("error.html")  # Display error page
+                print(f"Error occurred: {e}")
+                return render_template("error.html", error_message="Error uploading file")  # Display error page
         else:
-            Update_progress_db(transcript_id, status=0, message="Error file", Section="Upload Page")
-            return render_template("error.html")  # Render error page if file type is not allowed
+            return render_template("error.html", error_message="Invalid file type or empty file")  # Render error page if file type is not allowed
+
     else:
         return render_template('index.html')
 
-def upload_audio_to_assemblyai(audio_file,file_size):
-    """Upload audio file to AssemblyAI in chunks with progress tracking."""
+def upload_audio_to_assemblyai(audio_stream, file_size):
+    """Upload audio file to AssemblyAI for transcription with progress tracking."""
     headers = {"authorization": TOKEN_THREE}
     base_url = "https://api.assemblyai.com/v2"
-    # response = requests.post(f"{base_url}/upload", headers=headers, data=audio_file, stream=True)
-    def upload_chunks():
-        """Generator function to upload file in chunks and track progress."""
-        uploaded_size = 0
-        while True:
-            chunk = audio_file.read(300000)  # Read a 300 KB chunk
-            if not chunk:
-                break
-            yield chunk
-            uploaded_size += len(chunk)
-            progress_percentage = (uploaded_size / file_size) * 100  # Calculate progress percentage
-            prog_message = f"Processing... {progress_percentage:.2f}%"
-            
-            # Update the progress bar
-            update_progress_bar(B_status=progress_percentage, message=prog_message)
-    
-    # Upload the file to AssemblyAI and get the URL
-    response = requests.post(f"{base_url}/upload", headers=headers, data=upload_chunks(), stream=True)
-    if response.status_code != 200:
-        raise RuntimeError("File upload failed.")
-    
+
+    chunk_size = 450000  # Set the chunk size to 450KB
+    audio_stream.seek(0)  # Make sure to reset the pointer to the start of the stream
+
+    # Initialize tqdm progress bar
+    with tqdm(total=file_size, unit='B', unit_scale=True, desc='Uploading', ncols=100) as bar:
+        def upload_chunks():
+            while True:
+                chunk = audio_stream.read(chunk_size)  # Read chunks of specified size
+                if not chunk:
+                    break
+                yield chunk
+                bar.update(len(chunk))  # Update progress bar
+
+                # Update the progress dictionary for the frontend
+                prog_status = (bar.n / file_size) * 100
+                prog_message = f"Processing... {prog_status:.2f}%"
+
+                # Updated in every increment
+                update_progress_bar(B_status=prog_status, message=prog_message)
+
+            # Final update when upload is completed
+            prog_status = 100
+            prog_message = "Upload completed. Please wait for a few seconds..."
+            update_progress_bar(B_status=prog_status, message=prog_message)
+
+        # Upload the audio file to AssemblyAI in chunks using `stream`
+        response = requests.post(
+            base_url + "/upload", 
+            headers=headers, 
+            data=upload_chunks(),
+            stream=True  # Enable streaming
+        )
+
+        # Ensure the response is successful
+        response.raise_for_status()
+
     upload_url = response.json()["upload_url"]
-
-    # Request transcription from AssemblyAI using the uploaded file URL
     data = {"audio_url": upload_url}
-    response = requests.post(f"{base_url}/transcript", json=data, headers=headers)
-    if response.status_code != 200:
-        raise RuntimeError("Transcription request failed.")
+    response = requests.post(base_url + "/transcript", json=data, headers=headers)
+    transcript_id = response.json()['id']
+    polling_endpoint = f"https://api.assemblyai.com/v2/transcript/{transcript_id}"
     
-    transcript_id = response.json()["id"]
-    polling_endpoint = f"{base_url}/transcript/{transcript_id}"
-
-    # Poll for the transcription result until completion
+    # Polling for the transcription result
     while True:
         transcription_result = requests.get(polling_endpoint, headers=headers).json()
         if transcription_result['status'] == 'completed':
-            # Update progress in the database and clean up
-            Update_progress_db(transcript_id, 100, "Transcription completed", "Download page")
             return transcript_id
         elif transcription_result['status'] == 'error':
             raise RuntimeError(f"Transcription failed: {transcription_result['error']}")
