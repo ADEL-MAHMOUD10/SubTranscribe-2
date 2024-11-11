@@ -17,3 +17,4 @@ python-dateutil
 dnspython
 gunicorn
 uuid
+io
