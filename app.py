@@ -292,52 +292,49 @@ def upload_audio_to_assemblyai(audio_path):
     """Upload audio file to AssemblyAI for transcription with progress tracking."""
     headers = {"authorization": TOKEN_THREE}
     base_url = "https://api.assemblyai.com/v2"
+    total_size = os.path.getsize(audio_path)  # Get the file size in bytes
 
-    total_size = os.path.getsize(audio_path)  # Get the file size
-    with open(audio_path, "rb") as f:
-        # Initialize tqdm progress bar
-        with tqdm(total=total_size, unit='B', unit_scale=True, desc='Uploading', ncols=100) as bar:
-            def upload_chunks():
-                global prog_status, prog_message
+    def upload_chunks():
+        """Generator to upload file in chunks and track progress."""
+        uploaded_size = 0
+        with open(audio_path, "rb") as f:
+            while True:
+                chunk = f.read(300000)  # Read a 300 KB chunk
+                if not chunk:
+                    break
+                yield chunk
+                uploaded_size += len(chunk)
+                uploaded_mb = uploaded_size / (1024 * 1024)  # Convert to MB
+                progress_percentage = (uploaded_size / total_size) * 100
+                prog_message = f"Processing... {progress_percentage:.2f}%"
 
-                prog_status = 0
-                previous_status = -1  # Track the last updated progress
-                while True:
-                    chunk = f.read(300000)  # Read 300KB chunks
-                    if not chunk:
-                        break
-                    yield chunk
-                    bar.update(len(chunk))  # Update progress bar
+                
+                # Call the progress bar update function
+                update_progress_bar(B_status=progress_percentage, message=prog_message)
 
-                    # Update the progress dictionary for frontend
-                    prog_status = (bar.n / total_size) * 100
-
-                    # Update every 10% increment
-                    if int(prog_status) % 10 == 0 and int(prog_status) != previous_status:
-                        prog_message = f"Processing... {prog_status:.2f}%"
-                        update_progress_bar(B_status=prog_status, message=prog_message)
-                        previous_status = int(prog_status)
-                        continue
-                    if prog_status == 100:
-                        prog_message = "Please wait for a few seconds..."
-                        update_progress_bar(B_status=prog_status,message=prog_message)
-                        break
-            # Upload the audio file to AssemblyAI in chunks
-            response = requests.post(base_url + "/upload", headers=headers, data=upload_chunks(),stream=True)
-
-    upload_url = response.json()["upload_url"]
-    data = {"audio_url": upload_url}
-    response = requests.post(base_url + "/transcript", json=data, headers=headers)
-    transcript_id = response.json()['id']
-    polling_endpoint = f"https://api.assemblyai.com/v2/transcript/{transcript_id}"
+    # Upload the file and get the URL
+    response = requests.post(f"{base_url}/upload", headers=headers, data=upload_chunks(), stream=True)
+    if response.status_code != 200:
+        raise RuntimeError("File upload failed.")
     
+    upload_url = response.json()["upload_url"]
+
+    # Request transcription
+    data = {"audio_url": upload_url}
+    response = requests.post(f"{base_url}/transcript", json=data, headers=headers)
+    if response.status_code != 200:
+        raise RuntimeError("Transcription request failed.")
+    
+    transcript_id = response.json()["id"]
+    polling_endpoint = f"{base_url}/transcript/{transcript_id}"
+
     # Polling for the transcription result
     while True:
         transcription_result = requests.get(polling_endpoint, headers=headers).json()
         if transcription_result['status'] == 'completed':
-            # Update the progress in the database
-            Update_progress_db(transcript_id, prog_status, prog_message, "Download page", file_name=audio_path)
-            os.remove(audio_path)
+            # Update progress in the database and cleanup
+            Update_progress_db(transcript_id, 100, "Transcription completed", "Download page", file_name=audio_path)
+            os.remove(audio_path)  # Remove file after completion
             return transcript_id
         elif transcription_result['status'] == 'error':
             raise RuntimeError(f"Transcription failed: {transcription_result['error']}")
