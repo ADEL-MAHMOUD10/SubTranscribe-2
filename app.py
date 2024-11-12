@@ -156,7 +156,6 @@ def upload_or_link():
             except Exception as e:
                 return render_template("error.html")  # Display error page
         else:
-            Update_progress_db(transcript_id, status=0, message="Error file", Section="Upload Page")
             return render_template("error.html")  # Render error page if file type is not allowed
     else:
         return render_template('index.html')
