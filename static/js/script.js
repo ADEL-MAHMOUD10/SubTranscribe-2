@@ -39,6 +39,7 @@ const intervalId = setInterval(function () {
             'Content-Type': 'application/json'
         }
     })
+    
     .then(response => {
         if (!response.ok) {
             throw new Error('Network response was not ok.');
@@ -46,9 +47,9 @@ const intervalId = setInterval(function () {
         return response.json();
     })
     .then(data => {
-        console.log(data);
+        console.log("Progress Data:", data);
         if (data && typeof data.status !== 'undefined') {
-            const progressPercentage = typeof data.status === 'number' ? data.status : parseFloat(data.status) || 0;
+            const progressPercentage = parseFloat(data.status) || 0;
             // Update the progress bar.
             const progressBar = document.getElementById('progressBar');
             progressBar.style.width = `${progressPercentage}%`;
@@ -76,7 +77,7 @@ const intervalId = setInterval(function () {
             console.error('Error fetching progress:', error);
             document.getElementById('progressMessage').innerText = "Error fetching progress. Please try again.";
         });
-    }, 2500); // Poll every 2.5 seconds
+    }, 5000); // Poll every 5 seconds
 
 // Display selected file name dynamically
 function showFileName() {
