@@ -62,12 +62,14 @@ firebase_admin.initialize_app(cred,{
 @cross_origin()  # Allow CORS for this route
 def reset_progress():
     """Reset the current progress status."""
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Get the current time
     upload_id = str(uuid.uuid4())
     session['upload_id'] = upload_id
     ref = db.reference(f'/UID/{upload_id}')
     ref.update({
-        'status': 0,
-        'message': "Ready to upload"
+        "Date": current_time,
+        'Status': 0,
+        'Message': "Ready to upload"
     })
     return jsonify(upload_id)
 
@@ -177,22 +179,28 @@ def upload_audio_to_assemblyai(audio_file, file_size):
             progress_percentage = (uploaded_size / file_size) * 100  # Calculate progress percentage
             prog_message = f"Processing... {progress_percentage:.2f}%"
             
+            print(f"Progress: {progress_percentage:.2f}%, Message: {prog_message}")
+        
             # Update the progress bar
             update_progress_bar(B_status=progress_percentage, message=prog_message)
     
     # Upload the file to AssemblyAI and get the URL
-    response = requests.post(f"{base_url}/upload", headers=headers, data=upload_chunks(), stream=True)
-    if response.status_code != 200:
-        raise RuntimeError("File upload failed.")
+    try:
+        # Upload the audio file to AssemblyAI
+        response = requests.post(f"{base_url}/upload", headers=headers, data=upload_chunks(), stream=True)
+        if response.status_code!= 200:
+            raise RuntimeError("File upload failed.")
+        #...
+    except Exception as e:
+        update_progress_bar(0, f"Error uploading audio: {e}")
+        return None
     
     upload_url = response.json()["upload_url"]
 
     # Request transcription from AssemblyAI using the uploaded file URL
     data = {"audio_url": upload_url}
     response = requests.post(f"{base_url}/transcript", json=data, headers=headers)
-    if response.status_code != 200:
-        raise RuntimeError("Transcription request failed.")
-    
+
     transcript_id = response.json()["id"]
     polling_endpoint = f"{base_url}/transcript/{transcript_id}"
 
@@ -337,7 +345,6 @@ def serve_file(filename):
 
     return response  # Return the file response
 
-# Main entry point
 if __name__ == "__main__":
     app.run(host="0.0.0.0",debug=True,port=8000)
 
