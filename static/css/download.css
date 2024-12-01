@@ -103,3 +103,9 @@ span:hover {
     }
     
 }
+@media (max-width: 988px) {
+    .nav-item .btn {
+        margin: 5px 0;
+        display: block;
+    }
+}
