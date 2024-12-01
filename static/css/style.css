@@ -284,3 +284,9 @@ span:hover {
         margin: 0 auto 10px auto;
     }
 }
+@media (max-width: 988px) {
+    .nav-item .btn {
+        margin: 5px 0;
+        display: block;
+    }
+}
